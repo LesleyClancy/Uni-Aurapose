@@ -1,0 +1,44 @@
+# OS / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.hbuilderx/
+
+# Build outputs
+unpackage/
+dist/
+build/
+
+# Python cache / local envs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Secrets and machine-local config
+.env
+.env.*
+!.env.example
+!**/.env.example
+automation/*.env
+!.gitkeep
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Local automation state
+.codex-automation/
+
+# Database runtime files
+mysql/data/**
+!mysql/data/.gitkeep
+
+# Common dependency caches
+node_modules/
+

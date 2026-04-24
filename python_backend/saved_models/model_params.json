@@ -1,0 +1,20 @@
+{
+    "input_dim": 158,
+    "hidden_dim": 256,
+    "num_layers": 3,
+    "num_classes": 5,
+    "dropout": 0.3,
+    "sequence_length": 30,
+    "best_val_acc": 98.61940298507463,
+    "test_acc": 0.9817232375979112,
+    "class_names": [
+        "barbell biceps curl",
+        "hammer curl",
+        "push-up",
+        "shoulder press",
+        "squat"
+    ],
+    "feature_extractor_version": "enhanced_v2",
+    "model_architecture": "CNN_BiLSTM_Attention",
+    "use_augmentation": true
+}
