@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AuraPose | 武汉棱镜幻界科技有限公司</title>
+    <meta
+      name="description"
+      content="武汉棱镜幻界科技有限公司旗下 AuraPose，以 AI 视觉、空间感知与沉浸式交互构建下一代智能体验。"
+    />
+    <link rel="icon" type="image/png" href="./assets/aurapose-icon.png" />
+    <link rel="apple-touch-icon" href="./assets/aurapose-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="nav" aria-label="主导航">
+        <a class="brand-mark" href="#top" aria-label="AuraPose 首页">
+          <img class="brand-glyph" src="./assets/aurapose-icon.png" alt="" aria-hidden="true" />
+          <span>AuraPose</span>
+        </a>
+        <nav class="nav-links" aria-label="页面章节">
+          <a href="#vision">幻界</a>
+          <a href="#spectrum">棱镜</a>
+          <a href="#contact">联系</a>
+        </nav>
+      </header>
+
+      <main id="top">
+        <section class="hero" aria-labelledby="hero-title">
+          <canvas id="prismCanvas" class="prism-canvas" aria-hidden="true"></canvas>
+          <div class="hero-noise" aria-hidden="true"></div>
+          <div class="hero-content">
+            <p class="company-name reveal">武汉棱镜幻界科技有限公司</p>
+            <h1 id="hero-title" class="reveal">AuraPose</h1>
+            <p class="hero-line reveal">
+              将 AI 视觉、空间姿态与沉浸体验折射成可感知、可互动、可生长的数字幻界。
+            </p>
+            <div class="hero-actions reveal" aria-label="主要操作">
+              <a class="primary-action" href="#contact">
+                开始合作
+                <span aria-hidden="true">↗</span>
+              </a>
+              <a class="ghost-action" href="#vision">探索能力</a>
+            </div>
+          </div>
+          <div class="hero-sideword" aria-hidden="true">PRISM REALM</div>
+        </section>
+
+        <section id="vision" class="section vision-section">
+          <div class="section-kicker">幻界</div>
+          <div class="section-copy">
+            <h2>让空间成为界面，让动作生成体验。</h2>
+            <p>
+              武汉棱镜幻界科技有限公司面向智能健身、互动展示、虚拟人、空间内容与实时视觉应用，构建从感知到呈现的一体化体验系统。
+            </p>
+          </div>
+          <div class="vision-ribbon" aria-hidden="true">
+            <span>Motion Intelligence</span>
+            <span>Spatial Interface</span>
+            <span>Immersive Engine</span>
+          </div>
+        </section>
+
+        <section id="spectrum" class="spectrum-section" aria-labelledby="spectrum-title">
+          <div class="spectrum-sticky">
+            <p class="section-kicker">棱镜</p>
+            <h2 id="spectrum-title">把复杂技术分光成清晰体验。</h2>
+          </div>
+          <div class="spectrum-lanes" aria-label="能力方向">
+            <article>
+              <span>01</span>
+              <h3>AI 姿态识别</h3>
+              <p>实时捕捉身体关键点、姿态轨迹与训练动作，为交互和评估提供稳定输入。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>空间交互叙事</h3>
+              <p>把屏幕、摄像头、传感器与内容编排在同一个体验节奏里。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>沉浸式产品界面</h3>
+              <p>用克制的视觉系统、动态光谱和清晰信息层级打造高级科技品牌触感。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="signal-section" aria-labelledby="signal-title">
+          <div class="signal-visual" aria-hidden="true">
+            <div class="prism-core"></div>
+            <div class="beam beam-a"></div>
+            <div class="beam beam-b"></div>
+            <div class="beam beam-c"></div>
+          </div>
+          <div class="signal-copy">
+            <p class="section-kicker">Aura Signal</p>
+            <h2 id="signal-title">品牌气质：冷静、锋利、带一点不真实的光。</h2>
+            <p>
+              UI 语言以黑曜玻璃为底，以单一光谱青为行动色。棱镜负责秩序，幻界负责想象，整体感觉更像未来实验室的入口，而不是普通科技官网。
+            </p>
+          </div>
+        </section>
+
+        <section id="contact" class="contact-section" aria-labelledby="contact-title">
+          <p class="section-kicker">Contact</p>
+          <h2 id="contact-title">让下一束光进入产品。</h2>
+          <a class="primary-action contact-action" href="mailto:hello@aurapose.tech">
+            联系团队
+            <span aria-hidden="true">↗</span>
+          </a>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
