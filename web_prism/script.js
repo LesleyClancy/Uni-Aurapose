@@ -1,11 +1,13 @@
 const canvas = document.getElementById("prismCanvas");
 const ctx = canvas.getContext("2d");
+const body = document.body;
 
 let width = 0;
 let height = 0;
 let pointerX = 0.64;
 let pointerY = 0.42;
 let time = 0;
+const parallaxNodes = document.querySelectorAll("[data-parallax]");
 
 const colors = [
   "rgba(114, 247, 255, ",
@@ -14,6 +16,20 @@ const colors = [
   "rgba(178, 44, 255, ",
   "rgba(255, 255, 255, ",
 ];
+
+function initIntro() {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducedMotion) {
+    body.classList.remove("intro-active");
+    body.classList.add("intro-complete");
+    return;
+  }
+
+  window.setTimeout(() => {
+    body.classList.remove("intro-active");
+    body.classList.add("intro-complete");
+  }, 1880);
+}
 
 function resize() {
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -85,6 +101,18 @@ function drawBeam(cx, cy, angle, length, color, alpha) {
   ctx.restore();
 }
 
+function updateParallaxMotion() {
+  const offsetX = (pointerX - 0.5) * 26;
+  const offsetY = (pointerY - 0.5) * 18;
+
+  parallaxNodes.forEach((node, index) => {
+    const driftX = Math.sin(time * 1.8 + index * 1.3) * (6 + index * 1.2);
+    const driftY = Math.cos(time * 1.35 + index * 0.9) * (4 + index);
+    node.style.setProperty("--parallax-x", `${(offsetX * (0.3 + index * 0.08) + driftX).toFixed(2)}px`);
+    node.style.setProperty("--parallax-y", `${(offsetY * (0.26 + index * 0.06) + driftY).toFixed(2)}px`);
+  });
+}
+
 function animate() {
   time += 0.008;
   ctx.clearRect(0, 0, width, height);
@@ -115,6 +143,7 @@ function animate() {
     ctx.fillRect(x, y, 1.2, 1.2);
   }
 
+  updateParallaxMotion();
   requestAnimationFrame(animate);
 }
 
@@ -151,4 +180,6 @@ document.querySelectorAll("section:not(.hero) h2, .spectrum-lanes article, .sign
 });
 
 resize();
+updateParallaxMotion();
+initIntro();
 animate();
