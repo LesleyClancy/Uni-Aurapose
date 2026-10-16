@@ -1,8 +1,11 @@
-Flask==3.0.3
-PyMySQL==1.1.1
-cryptography==46.0.3
-opencv-python==4.10.0.84
-numpy==1.26.4
-mediapipe==0.10.14
-onnxruntime==1.18.1
-scikit-learn==1.5.1
+Flask>=3.0.3
+PyMySQL>=1.1.1
+cryptography>=46.0.3
+opencv-python>=4.10.0.84
+numpy>=1.26.4
+mediapipe>=0.10.33
+onnxruntime>=1.18.1
+scikit-learn>=1.5.1
+# 说明：视觉识别推理仅需以上依赖（ONNX Runtime 推理）。
+# torch/matplotlib/scipy 不再是直接依赖：torch 仅在重新训练
+# PyTorch 原始模型时才需要安装（old.py 中已做可选导入）。

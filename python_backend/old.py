@@ -1,6 +1,3 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import cv2
 import numpy as np
 import pickle
@@ -10,11 +7,22 @@ from collections import deque
 import time
 import threading
 from datetime import datetime
-import matplotlib.pyplot as plt
 from pathlib import Path
 import warnings
-from scipy.signal import savgol_filter
 import onnxruntime as ort
+
+# torch 仅在需要复现/再训练 PyTorch 原始模型时使用；
+# 线上推理走 ONNX Runtime，不强制安装 torch（节省 GB 级依赖）。
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    F = None
+    TORCH_AVAILABLE = False
 
 try:
     import mediapipe as mp
@@ -224,93 +232,95 @@ class UserProfile:
         print("=" * 30)
 
 
-class AttentionLayer(nn.Module):
-    def __init__(self, hidden_dim):
-        super(AttentionLayer, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.attention = nn.Linear(hidden_dim, 1)
+if TORCH_AVAILABLE:
 
-    def forward(self, lstm_output):
-        attention_weights = torch.softmax(self.attention(lstm_output), dim=1)
-        context = torch.sum(attention_weights * lstm_output, dim=1)
-        return context, attention_weights
+    class AttentionLayer(nn.Module):
+        def __init__(self, hidden_dim):
+            super(AttentionLayer, self).__init__()
+            self.hidden_dim = hidden_dim
+            self.attention = nn.Linear(hidden_dim, 1)
+
+        def forward(self, lstm_output):
+            attention_weights = torch.softmax(self.attention(lstm_output), dim=1)
+            context = torch.sum(attention_weights * lstm_output, dim=1)
+            return context, attention_weights
 
 
-class CNNFeatureExtractor(nn.Module):
-    def __init__(self, input_dim, cnn_filters=[64, 128, 256]):
-        super(CNNFeatureExtractor, self).__init__()
-        self.conv_layers = nn.ModuleList()
-        in_channels = input_dim
+    class CNNFeatureExtractor(nn.Module):
+        def __init__(self, input_dim, cnn_filters=[64, 128, 256]):
+            super(CNNFeatureExtractor, self).__init__()
+            self.conv_layers = nn.ModuleList()
+            in_channels = input_dim
 
-        for out_channels in cnn_filters:
-            self.conv_layers.append(
-                nn.Sequential(
-                    nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
-                    nn.BatchNorm1d(out_channels),
-                    nn.ReLU(),
-                    nn.MaxPool1d(kernel_size=2, stride=1, padding=1),
-                    nn.Dropout(0.2)
+            for out_channels in cnn_filters:
+                self.conv_layers.append(
+                    nn.Sequential(
+                        nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
+                        nn.BatchNorm1d(out_channels),
+                        nn.ReLU(),
+                        nn.MaxPool1d(kernel_size=2, stride=1, padding=1),
+                        nn.Dropout(0.2)
+                    )
                 )
+                in_channels = out_channels
+
+            self.output_dim = cnn_filters[-1]
+
+        def forward(self, x):
+            x = x.transpose(1, 2)
+            for conv_layer in self.conv_layers:
+                x = conv_layer(x)
+            x = x.transpose(1, 2)
+            return x
+
+
+    class EnhancedExerciseClassifier(nn.Module):
+        def __init__(self, input_dim, hidden_dim, num_layers, num_classes, dropout=0.3):
+            super(EnhancedExerciseClassifier, self).__init__()
+
+            self.cnn = CNNFeatureExtractor(input_dim, cnn_filters=[64, 128, 128])
+            cnn_output_dim = self.cnn.output_dim
+
+            self.bilstm = nn.LSTM(
+                input_size=cnn_output_dim,
+                hidden_size=hidden_dim,
+                num_layers=num_layers,
+                batch_first=True,
+                bidirectional=True,
+                dropout=dropout if num_layers > 1 else 0
             )
-            in_channels = out_channels
 
-        self.output_dim = cnn_filters[-1]
+            self.attention = AttentionLayer(hidden_dim * 2)
+            self.dropout = nn.Dropout(dropout)
+            self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, hidden_dim // 2)
+            self.fc3 = nn.Linear(hidden_dim // 2, num_classes)
 
-    def forward(self, x):
-        x = x.transpose(1, 2)
-        for conv_layer in self.conv_layers:
-            x = conv_layer(x)
-        x = x.transpose(1, 2)
-        return x
+            self.layer_norm1 = nn.LayerNorm(hidden_dim)
+            self.layer_norm2 = nn.LayerNorm(hidden_dim // 2)
+            self.residual_fc = nn.Linear(hidden_dim * 2, hidden_dim)
 
+        def forward(self, x):
+            cnn_features = self.cnn(x)
+            lstm_out, _ = self.bilstm(cnn_features)
+            context, attention_weights = self.attention(lstm_out)
 
-class EnhancedExerciseClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers, num_classes, dropout=0.3):
-        super(EnhancedExerciseClassifier, self).__init__()
+            out = self.dropout(context)
+            fc1_out = self.fc1(out)
+            fc1_out = self.layer_norm1(fc1_out)
+            fc1_out = F.relu(fc1_out)
 
-        self.cnn = CNNFeatureExtractor(input_dim, cnn_filters=[64, 128, 128])
-        cnn_output_dim = self.cnn.output_dim
+            residual = self.residual_fc(context)
+            fc1_out = fc1_out + residual
+            out = self.dropout(fc1_out)
 
-        self.bilstm = nn.LSTM(
-            input_size=cnn_output_dim,
-            hidden_size=hidden_dim,
-            num_layers=num_layers,
-            batch_first=True,
-            bidirectional=True,
-            dropout=dropout if num_layers > 1 else 0
-        )
+            out = self.fc2(out)
+            out = self.layer_norm2(out)
+            out = F.relu(out)
+            out = self.dropout(out)
 
-        self.attention = AttentionLayer(hidden_dim * 2)
-        self.dropout = nn.Dropout(dropout)
-        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim // 2)
-        self.fc3 = nn.Linear(hidden_dim // 2, num_classes)
-
-        self.layer_norm1 = nn.LayerNorm(hidden_dim)
-        self.layer_norm2 = nn.LayerNorm(hidden_dim // 2)
-        self.residual_fc = nn.Linear(hidden_dim * 2, hidden_dim)
-
-    def forward(self, x):
-        cnn_features = self.cnn(x)
-        lstm_out, _ = self.bilstm(cnn_features)
-        context, attention_weights = self.attention(lstm_out)
-
-        out = self.dropout(context)
-        fc1_out = self.fc1(out)
-        fc1_out = self.layer_norm1(fc1_out)
-        fc1_out = F.relu(fc1_out)
-
-        residual = self.residual_fc(context)
-        fc1_out = fc1_out + residual
-        out = self.dropout(fc1_out)
-
-        out = self.fc2(out)
-        out = self.layer_norm2(out)
-        out = F.relu(out)
-        out = self.dropout(out)
-
-        out = self.fc3(out)
-        return out
+            out = self.fc3(out)
+            return out
 
 
 class RealtimeFeatureExtractor:
@@ -1406,12 +1416,13 @@ class ExerciseRecognitionSystemPC:
 
         self.model_dir = Path(model_dir)
 
-        # 检测可用设备
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda')
+        # 通过 onnxruntime 检测可用执行设备，无需依赖 torch
+        available_providers = ort.get_available_providers()
+        if 'CUDAExecutionProvider' in available_providers:
+            self.device = 'cuda'
             print(f"使用设备: CUDA GPU")
         else:
-            self.device = torch.device('cpu')
+            self.device = 'cpu'
             print(f"使用设备: CPU")
 
         self.onnx_session = None
@@ -1466,9 +1477,10 @@ class ExerciseRecognitionSystemPC:
             if not onnx_model_path.exists():
                 raise FileNotFoundError("ONNX模型文件不存在")
 
-            # 根据可用硬件选择提供者
+            # 根据可用硬件选择提供者（由 onnxruntime 自行检测，不依赖 torch）
+            available_providers = ort.get_available_providers()
             providers = []
-            if torch.cuda.is_available():
+            if 'CUDAExecutionProvider' in available_providers:
                 providers.append('CUDAExecutionProvider')
             providers.append('CPUExecutionProvider')
 
