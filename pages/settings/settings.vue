@@ -36,6 +36,20 @@
         </button>
       </view>
     </view>
+
+    <!-- #ifdef APP-PLUS -->
+    <view class="setting-card">
+      <text class="card-title">{{ copy.serverTitle }}</text>
+      <input
+        class="server-input"
+        v-model="serverUrl"
+        :placeholder="defaultApiBaseUrl"
+        placeholder-class="server-placeholder"
+      />
+      <text class="server-hint">{{ copy.serverHint }}</text>
+      <button class="option-btn server-save" @click="handleServerSave">{{ copy.serverSave }}</button>
+    </view>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -53,12 +67,15 @@ import {
   getLocale,
   setLocale
 } from '../../common/i18n.js'
+import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from '../../common/api.js'
 
 export default {
   data() {
     return {
       themeMode: getThemeMode(),
-      locale: getLocale()
+      locale: getLocale(),
+      serverUrl: getApiBaseUrl(),
+      defaultApiBaseUrl: DEFAULT_API_BASE_URL
     }
   },
   computed: {
@@ -108,6 +125,13 @@ export default {
     handleLanguageChange(locale) {
       this.locale = setLocale(locale)
       applyPageLocale('settings', this.locale)
+    },
+    handleServerSave() {
+      this.serverUrl = setApiBaseUrl(this.serverUrl)
+      uni.showToast({
+        title: this.copy.serverSaved,
+        icon: 'none'
+      })
     }
   }
 }
@@ -228,5 +252,33 @@ export default {
 
 .option-btn::after {
   border: none;
+}
+
+.server-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 24rpx;
+  background: var(--surface-strong);
+  border: 1rpx solid var(--border);
+  color: var(--text);
+  font-size: 28rpx;
+}
+
+.server-placeholder {
+  color: var(--text-muted);
+}
+
+.server-hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.server-save {
+  margin-top: 18rpx;
+  width: 100%;
 }
 </style>

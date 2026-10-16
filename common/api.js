@@ -1,5 +1,26 @@
-export const API_BASE_URL = 'http://10.190.232.61:5000'
+// 默认后端地址：调试用局域网 IP（手机/小程序需与运行后端的电脑同网段）
+// App 发行前可在「设置 → 服务器地址」填入生产服务器（建议 HTTPS 域名）
+export const DEFAULT_API_BASE_URL = 'http://10.190.232.61:5000'
+export const API_BASE_URL_STORAGE_KEY = 'profitai_api_base_url'
 export const DEFAULT_OPENID = 'dev-openid'
+
+export function getApiBaseUrl() {
+  const saved = uni.getStorageSync(API_BASE_URL_STORAGE_KEY)
+  if (typeof saved === 'string' && saved.trim()) {
+    return saved.trim().replace(/\/+$/, '')
+  }
+  return DEFAULT_API_BASE_URL
+}
+
+export function setApiBaseUrl(url) {
+  const normalized = String(url || '').trim().replace(/\/+$/, '')
+  if (normalized) {
+    uni.setStorageSync(API_BASE_URL_STORAGE_KEY, normalized)
+  } else {
+    uni.removeStorageSync(API_BASE_URL_STORAGE_KEY)
+  }
+  return getApiBaseUrl()
+}
 
 export function getOpenid() {
   return uni.getStorageSync('profitai_openid') || DEFAULT_OPENID
@@ -12,7 +33,7 @@ export function setOpenid(openid) {
 }
 
 export function apiRequest(path, options = {}) {
-  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`
+  const url = path.startsWith('http') ? path : `${getApiBaseUrl()}${path}`
   return new Promise((resolve, reject) => {
     uni.request({
       url,

@@ -16,8 +16,10 @@
             "autoclose" : true,
             "delay" : 0
         },
-        /* 模块配置 */
-        "modules" : {},
+        /* 模块配置（VideoPlayer 为 live-pusher 相机预览/截图所必需） */
+        "modules" : {
+            "VideoPlayer" : {}
+        },
         /* 应用发布信息 */
         "distribute" : {
             /* android打包配置 */
@@ -37,7 +39,9 @@
                     "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
                     "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
-                    "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
+                    "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>",
+                    "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>"
                 ]
             },
             /* ios打包配置 */

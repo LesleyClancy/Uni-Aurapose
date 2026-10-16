@@ -19,6 +19,7 @@
       </view>
 
       <view class="preview-shell training-preview" id="previewShell">
+        <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
           device-position="front"
@@ -26,6 +27,21 @@
           @initdone="cameraInitDone"
           @error="cameraError"
         />
+        <!-- #endif -->
+        <!-- #ifdef APP-PLUS -->
+        <live-pusher
+          id="pusher"
+          class="camera-source"
+          mode="HD"
+          device-position="front"
+          flash="off"
+          :autopush="false"
+          :muted="true"
+          :enable-camera="true"
+          @statechange="pusherStateChange"
+          @error="cameraError"
+        />
+        <!-- #endif -->
         <cover-view class="skeleton-overlay">
           <cover-view
             v-for="(line, index) in skeletonLines"
@@ -51,6 +67,7 @@
 
     <view v-else class="panorama-shell">
       <view class="preview-shell panorama-preview" id="previewShell">
+        <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
           device-position="front"
@@ -58,6 +75,21 @@
           @initdone="cameraInitDone"
           @error="cameraError"
         />
+        <!-- #endif -->
+        <!-- #ifdef APP-PLUS -->
+        <live-pusher
+          id="pusher"
+          class="camera-source"
+          mode="HD"
+          device-position="front"
+          flash="off"
+          :autopush="false"
+          :muted="true"
+          :enable-camera="true"
+          @statechange="pusherStateChange"
+          @error="cameraError"
+        />
+        <!-- #endif -->
         <cover-view class="skeleton-overlay">
           <cover-view
             v-for="(line, index) in skeletonLines"
@@ -93,14 +125,18 @@
         </view>
 
         <view class="panorama-overlay bottom">
+          <!-- #ifdef MP-WEIXIN -->
           <view class="record-panel">
             <text class="record-title">{{ copy.panoramaRecording }}</text>
             <text class="record-subtitle">{{ isRecording ? copy.panoramaRecordingOn : copy.panoramaRecordingOff }}</text>
           </view>
+          <!-- #endif -->
           <view class="panorama-actions">
+            <!-- #ifdef MP-WEIXIN -->
             <button class="ghost-btn" @click="toggleRecording">
               {{ isRecording ? copy.stopRecording : copy.startRecording }}
             </button>
+            <!-- #endif -->
             <button class="danger-btn" @click="requestFinish">{{ copy.endWorkout }}</button>
           </view>
         </view>
@@ -181,7 +217,7 @@
 </template>
 
 <script>
-import { API_BASE_URL, createTrainingSession, finishTrainingSession, getOpenid } from '../../common/api.js'
+import { createTrainingSession, finishTrainingSession, getApiBaseUrl, getOpenid } from '../../common/api.js'
 import {
   applyNativeTheme,
   getThemeClass,
@@ -190,8 +226,6 @@ import {
 } from '../../common/theme.js'
 import { applyPageLocale, getCopy, getLocale } from '../../common/i18n.js'
 
-const SERVER_BASE_URL = API_BASE_URL
-const REALTIME_API_URL = `${SERVER_BASE_URL}/api/realtime_frame`
 const REQUEST_TIMEOUT = 120000
 
 const CONNECTIONS = [
@@ -298,7 +332,12 @@ export default {
     }
   },
   onReady() {
+    // #ifdef MP-WEIXIN
     this.cameraContext = uni.createCameraContext(this)
+    // #endif
+    // #ifdef APP-PLUS
+    this.cameraContext = uni.createLivePusherContext('pusher', this)
+    // #endif
     this.measurePreview()
   },
   async onShow() {
@@ -358,6 +397,17 @@ export default {
         icon: 'none'
       })
     },
+    // #ifdef APP-PLUS
+    pusherStateChange(e) {
+      const detail = (e && e.detail) || {}
+      // 负数 code 为 live-pusher 错误码（-1307 摄像头打开失败等）
+      if (detail.code < 0) {
+        this.cameraError({ detail: { errMsg: `live-pusher error code ${detail.code}` } })
+        return
+      }
+      this.cameraInitDone()
+    },
+    // #endif
     startDetection() {
       if (this.detectionTimer) {
         return
@@ -432,6 +482,7 @@ export default {
         return
       }
       this.sending = true
+      // #ifdef MP-WEIXIN
       this.cameraContext.takePhoto({
         quality: 'low',
         success: (res) => {
@@ -442,49 +493,103 @@ export default {
           this.errorText = `${this.copy.frameCaptureFailed}: ${err.errMsg || 'unknown error'}`
         }
       })
-    },
-    sendToBackend(imagePath) {
-      const fileSystemManager = uni.getFileSystemManager()
-      fileSystemManager.readFile({
-        filePath: imagePath,
-        encoding: 'base64',
+      // #endif
+      // #ifdef APP-PLUS
+      this.cameraContext.snapshot({
         success: (res) => {
-          uni.request({
-            url: REALTIME_API_URL,
-            method: 'POST',
-            timeout: REQUEST_TIMEOUT,
-            data: {
-              openid: getOpenid(),
-              session_id: this.sessionId,
-              image: `data:image/jpeg;base64,${res.data}`
-            },
-            success: (response) => {
-              const result = response.data || {}
-              if (response.statusCode !== 200 || result.error) {
-                this.errorText = `${this.copy.serverError}: ${result.error || response.statusCode}`
-                return
-              }
-              this.applyRealtimeResult(result)
-            },
-            fail: (err) => {
-              this.sending = false
-              if (err.errMsg && err.errMsg.includes('timeout')) {
-                this.errorText = this.copy.requestTimeout
-              } else {
-                this.errorText = `${this.copy.requestFailed}: ${err.errMsg || 'network error'}`
-              }
-            },
-            complete: () => {
-              this.sending = false
-              if (this.isDetecting) {
-                setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
-              }
-            }
-          })
+          const path = res.tempImagePath || (res.message && res.message.tempImagePath)
+          if (path) {
+            this.sendToBackend(path)
+          } else {
+            this.sending = false
+            this.errorText = `${this.copy.frameCaptureFailed}: empty snapshot`
+          }
         },
         fail: (err) => {
           this.sending = false
-          this.errorText = `${this.copy.imageReadFailed}: ${err.errMsg || 'unknown error'}`
+          this.errorText = `${this.copy.frameCaptureFailed}: ${(err && (err.errMsg || err.message)) || 'unknown error'}`
+        }
+      })
+      // #endif
+    },
+    sendToBackend(imagePath) {
+      this.readImageAsBase64(imagePath)
+        .then((base64) => {
+          this.postFrameToBackend(base64)
+        })
+        .catch((err) => {
+          this.sending = false
+          this.errorText = `${this.copy.imageReadFailed}: ${(err && (err.errMsg || err.message)) || err || 'unknown error'}`
+        })
+    },
+    readImageAsBase64(imagePath) {
+      // #ifdef MP-WEIXIN
+      return new Promise((resolve, reject) => {
+        uni.getFileSystemManager().readFile({
+          filePath: imagePath,
+          encoding: 'base64',
+          success: (res) => resolve(res.data),
+          fail: reject
+        })
+      })
+      // #endif
+      // #ifdef APP-PLUS
+      return new Promise((resolve, reject) => {
+        if (typeof uni.getFileSystemManager === 'function') {
+          uni.getFileSystemManager().readFile({
+            filePath: imagePath,
+            encoding: 'base64',
+            success: (res) => resolve(res.data),
+            fail: reject
+          })
+          return
+        }
+        // 低版本基座无 getFileSystemManager 时，用 5+ API 读取
+        plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+          entry.file((file) => {
+            const reader = new plus.io.FileReader()
+            reader.onload = (evt) => {
+              const result = String((evt.target && evt.target.result) || '')
+              resolve(result.split(',')[1] || '')
+            }
+            reader.onerror = (evt) => reject((evt && evt.target && evt.target.error) || new Error('read failed'))
+            reader.readAsDataURL(file)
+          }, reject)
+        }, reject)
+      })
+      // #endif
+    },
+    postFrameToBackend(base64) {
+      uni.request({
+        url: `${getApiBaseUrl()}/api/realtime_frame`,
+        method: 'POST',
+        timeout: REQUEST_TIMEOUT,
+        data: {
+          openid: getOpenid(),
+          session_id: this.sessionId,
+          image: `data:image/jpeg;base64,${base64}`
+        },
+        success: (response) => {
+          const result = response.data || {}
+          if (response.statusCode !== 200 || result.error) {
+            this.errorText = `${this.copy.serverError}: ${result.error || response.statusCode}`
+            return
+          }
+          this.applyRealtimeResult(result)
+        },
+        fail: (err) => {
+          this.sending = false
+          if (err.errMsg && err.errMsg.includes('timeout')) {
+            this.errorText = this.copy.requestTimeout
+          } else {
+            this.errorText = `${this.copy.requestFailed}: ${err.errMsg || 'network error'}`
+          }
+        },
+        complete: () => {
+          this.sending = false
+          if (this.isDetecting) {
+            setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
+          }
         }
       })
     },
@@ -512,7 +617,7 @@ export default {
     },
     handleReset() {
       uni.request({
-        url: `${SERVER_BASE_URL}/api/reset`,
+        url: `${getApiBaseUrl()}/api/reset`,
         method: 'POST',
         complete: () => {
           this.currentExerciseKey = 'unknown'

@@ -178,7 +178,11 @@ const messages = {
       themeLight: '日间模式',
       themeDark: '夜间模式',
       languageZh: '中文',
-      languageEn: 'English'
+      languageEn: 'English',
+      serverTitle: '服务器地址',
+      serverHint: '后端接口地址，留空恢复默认。',
+      serverSave: '保存地址',
+      serverSaved: '服务器地址已更新'
     },
     groups: {
       heroKicker: '社交训练',
@@ -484,7 +488,11 @@ const messages = {
       themeLight: 'Day mode',
       themeDark: 'Night mode',
       languageZh: '中文',
-      languageEn: 'English'
+      languageEn: 'English',
+      serverTitle: 'Server address',
+      serverHint: 'Backend API base URL. Leave empty to reset to default.',
+      serverSave: 'Save address',
+      serverSaved: 'Server address updated'
     },
     groups: {
       heroKicker: 'Social workout',
