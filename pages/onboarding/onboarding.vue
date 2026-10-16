@@ -1,560 +1,452 @@
 <template>
-  <view class="container bg-background">
-    <!-- Top Navigation -->
-    <header class="header">
-      <div class="header-spacer"></div>
-      <h1 class="app-title">AuraPose</h1>
-      <div class="header-spacer"></div>
-    </header>
+  <view :class="['page', themeClass]" :style="themeVars">
+    <view class="ambient ambient-left"></view>
+    <view class="ambient ambient-right"></view>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Hero Section -->
-      <div class="hero-section">
-        <h2 class="hero-title">
-          开启您的 <span class="text-primary">AI</span> 健身之旅
-        </h2>
-        <p class="hero-subtitle">
-          输入您的基础信息，让 AI 为您定制专属方案
-        </p>
-      </div>
+    <view class="header">
+      <text class="brand">AuraPose</text>
+      <text class="header-tag">{{ copy.headerTag }}</text>
+    </view>
 
-      <!-- AI Kinetic Sphere -->
-      <div class="ai-sphere-container">
-        <div class="ai-sphere-bg"></div>
-        <div class="glass-panel ai-sphere">
-          <text class="material-symbols-outlined ai-icon"></text>
-        </div>
-      </div>
+    <view class="hero">
+      <text class="hero-kicker">{{ copy.heroKicker }}</text>
+      <text class="hero-title">{{ copy.heroTitle }}</text>
+    </view>
 
-      <!-- Onboarding Form -->
-      <div class="form-container">
-        <!-- Gender Selection -->
-        <section class="form-section">
-          <label class="form-label">性别 (Gender)</label>
-          <div class="gender-grid">
-            <button class="glass-panel gender-btn" :class="{ active: gender === 'male' }" @click="selectGender('male')">
-              <text class="material-symbols-outlined gender-icon">male</text>
-              <span class="gender-text">男</span>
-            </button>
-            <button class="glass-panel gender-btn" :class="{ active: gender === 'female' }" @click="selectGender('female')">
-              <text class="material-symbols-outlined gender-icon">female</text>
-              <span class="gender-text">女</span>
-            </button>
-          </div>
-        </section>
+    <view class="panel">
+      <view class="identity-block">
+        <view class="avatar-shell" @click="pickAvatar">
+          <image v-if="avatarPath" class="avatar-image" :src="avatarPath" mode="aspectFill" />
+          <view v-else class="avatar-placeholder">
+            <text class="avatar-plus">+</text>
+            <text class="avatar-tip">{{ copy.avatarTip }}</text>
+          </view>
+        </view>
+        <input
+          v-model="nickname"
+          class="nickname-input"
+          maxlength="20"
+          :placeholder-style="placeholderStyle"
+          :placeholder="copy.nicknamePlaceholder"
+        />
+      </view>
 
-        <!-- Age Selection -->
-        <section class="glass-panel age-section">
-          <div class="age-header">
-            <label class="form-label">年龄 (Age)</label>
-            <span class="age-value">{{ age }} <span class="age-unit">岁</span></span>
-          </div>
-          <div class="slider-container">
-            <div class="slider-track"></div>
-            <div class="slider-progress" :style="{ width: agePercentage + '%' }"></div>
-            <div class="slider-thumb" :style="{ left: agePercentage + '%' }" @touchstart="startDrag" @touchmove="drag" @touchend="endDrag"></div>
-          </div>
-        </section>
+      <view class="compact-grid">
+        <view class="metric-card metric-card-wide">
+          <view class="metric-head">
+            <text class="metric-label">{{ copy.ageLabel }}</text>
+            <text class="metric-value">{{ age }} {{ copy.ageUnit }}</text>
+          </view>
+          <slider
+            class="age-slider"
+            :value="age"
+            :min="16"
+            :max="60"
+            :block-size="20"
+            :activeColor="themeMode === 'light' ? '#4c6fff' : '#9cb3ff'"
+            :backgroundColor="themeMode === 'light' ? '#d7dfee' : '#24304f'"
+            @change="handleAgeChange"
+          />
+          <view class="age-range">
+            <text>16 {{ copy.ageUnit }}</text>
+            <text>60 {{ copy.ageUnit }}</text>
+          </view>
+        </view>
 
-        <!-- Physical Specs -->
-        <div class="specs-grid">
-          <!-- Height -->
-          <div class="glass-panel spec-item">
-            <label class="form-label">身高 (Height)</label>
-            <div class="spec-input">
-              <input type="number" v-model="height" class="spec-input-field" />
-              <span class="spec-unit">cm</span>
-            </div>
-          </div>
-          <!-- Weight -->
-          <div class="glass-panel spec-item">
-            <label class="form-label">体重 (Weight)</label>
-            <div class="spec-input">
-              <input type="number" v-model="weight" class="spec-input-field" />
-              <span class="spec-unit">kg</span>
-            </div>
-          </div>
-        </div>
+        <view class="metric-card">
+          <text class="metric-label">{{ copy.heightLabel }}</text>
+          <view class="metric-input-row">
+            <input
+              v-model="height"
+              class="metric-input"
+              type="number"
+              :placeholder-style="placeholderStyle"
+              placeholder="180"
+            />
+            <text class="metric-unit">cm</text>
+          </view>
+        </view>
 
+        <view class="metric-card">
+          <text class="metric-label">{{ copy.weightLabel }}</text>
+          <view class="metric-input-row">
+            <input
+              v-model="weight"
+              class="metric-input"
+              type="number"
+              :placeholder-style="placeholderStyle"
+              placeholder="75"
+            />
+            <text class="metric-unit">kg</text>
+          </view>
+        </view>
+      </view>
 
-      </div>
+      <view class="privacy-row">
+        <text class="privacy-text">{{ copy.privacyText }}</text>
+        <text class="privacy-chip">{{ themeMode === 'light' ? copy.dayMode : copy.nightMode }}</text>
+      </view>
+    </view>
 
-      <!-- Action Button -->
-      <div class="action-button-container">
-        <button class="action-button" @click="generatePlan">
-          <span>生成我的方案</span>
-        </button>
-        <p class="privacy-text">您的数据受端到端加密保护</p>
-      </div>
-    </main>
+    <button class="submit-btn" @click="generatePlan">{{ copy.submitButton }}</button>
   </view>
 </template>
 
 <script>
-import { saveProfile } from '../../common/api.js'
+import {
+  applyNativeTheme,
+  getStoredProfile,
+  getThemeClass,
+  getThemeMode,
+  getThemeVars,
+  mergeStoredProfile
+} from '../../common/theme.js'
+import { applyPageLocale, getCopy, getLocale } from '../../common/i18n.js'
 
 export default {
   data() {
+    const profile = getStoredProfile()
     return {
-      gender: 'male',
-      age: 28,
-      height: 180,
-      weight: 75,
-      isDragging: false
+      themeMode: getThemeMode(),
+      locale: getLocale(),
+      nickname: profile.nickname || '',
+      age: Number(profile.age || 28),
+      height: String(profile.height || 180),
+      weight: String(profile.weight || 75),
+      avatarPath: profile.avatarPath || ''
     }
   },
   computed: {
-    agePercentage() {
-      return (this.age / 100) * 100;
+    copy() {
+      return getCopy('onboarding', this.locale)
+    },
+    themeClass() {
+      return getThemeClass(this.themeMode)
+    },
+    themeVars() {
+      return getThemeVars(this.themeMode)
+    },
+    placeholderStyle() {
+      return `color:${this.themeMode === 'light' ? '#9aa5b5' : '#66738f'}`
     }
   },
+  onLoad() {
+    this.syncLocale()
+  },
+  onShow() {
+    this.syncTheme()
+    this.syncLocale()
+    const profile = getStoredProfile()
+    this.avatarPath = profile.avatarPath || this.avatarPath
+  },
   methods: {
-    selectGender(gender) {
-      this.gender = gender;
+    syncTheme() {
+      this.themeMode = getThemeMode()
+      applyNativeTheme(this.themeMode)
     },
-    startDrag() {
-      this.isDragging = true;
+    syncLocale() {
+      this.locale = getLocale()
+      applyPageLocale('onboarding', this.locale)
     },
-    drag(event) {
-      if (!this.isDragging) return;
-      if (!event.currentTarget || !event.currentTarget.parentElement) return;
-      const slider = event.currentTarget.parentElement;
-      const rect = slider.getBoundingClientRect();
-      if (!rect) return;
-      let percentage = (event.touches[0].clientX - rect.left) / rect.width;
-      percentage = Math.max(0, Math.min(1, percentage));
-      this.age = Math.round(percentage * 100);
+    handleAgeChange(event) {
+      this.age = Number(event.detail.value || 28)
     },
-    endDrag() {
-      this.isDragging = false;
+    pickAvatar() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        success: (res) => {
+          const tempPath = res.tempFilePaths[0] || ''
+          if (!tempPath) {
+            return
+          }
+          uni.navigateTo({
+            url: `/pages/avatar-crop/avatar-crop?src=${encodeURIComponent(tempPath)}`
+          })
+        }
+      })
     },
     async generatePlan() {
-      try {
-        await saveProfile({
-          gender: this.gender,
-          age: this.age,
-          height: this.height,
-          weight: this.weight
-        });
-      } catch (err) {
-        uni.showToast({
-          title: `保存失败: ${err}`,
-          icon: 'none'
-        });
+      const payload = {
+        nickname: (this.nickname || '').trim() || this.copy.defaultNickname,
+        age: Number(this.age || 28),
+        height: Number(this.height || 0),
+        weight: Number(this.weight || 0),
+        avatarPath: this.avatarPath
       }
-      // 跳转到主页
-      uni.switchTab({ url: '/pages/home/home' });
-    },
-    goBack() {
-      uni.navigateBack();
+
+      mergeStoredProfile(payload)
+      uni.switchTab({ url: '/pages/home/home' })
     }
   }
 }
 </script>
 
 <style>
-/* 全局样式 */
-.container {
+.page {
   min-height: 100vh;
-  background-color: #0e0e0e;
-  color: #ffffff;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 40rpx 30rpx 56rpx;
+  background:
+    radial-gradient(circle at top left, var(--hero-glow), transparent 36%),
+    radial-gradient(circle at right center, var(--hero-glow-alt), transparent 26%),
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-soft) 100%);
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
 }
 
-/* 顶部导航 */
+.ambient {
+  position: absolute;
+  border-radius: 999rpx;
+  filter: blur(54rpx);
+  opacity: 0.8;
+}
+
+.ambient-left {
+  width: 240rpx;
+  height: 240rpx;
+  background: var(--hero-glow);
+  left: -80rpx;
+  top: 240rpx;
+}
+
+.ambient-right {
+  width: 280rpx;
+  height: 280rpx;
+  background: var(--hero-glow-alt);
+  right: -120rpx;
+  top: 140rpx;
+}
+
+.header,
+.hero,
+.panel,
+.submit-btn {
+  position: relative;
+  z-index: 2;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 40rpx 60rpx;
-  background: rgba(14, 14, 14, 0.8);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(142, 171, 255, 0.1);
+  margin-bottom: 44rpx;
 }
 
-.nav-btn {
-  color: #8eabff;
-  background: none;
-  border: none;
-  font-size: 24px;
+.brand {
+  font-size: 48rpx;
+  font-weight: 700;
+  letter-spacing: -1rpx;
+  color: var(--brand);
 }
 
-.header-spacer {
-  width: 24px;
+.header-tag {
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 22rpx;
+  border: 1rpx solid var(--border);
 }
 
-.app-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  background: linear-gradient(90deg, #8eabff, #bc87fe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.hero {
+  margin-bottom: 36rpx;
+}
+
+.hero-kicker {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
   text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-/* 主内容 */
-.main-content {
-  padding: 60rpx;
-}
-
-/* 英雄区域 */
-.hero-section {
-  text-align: center;
-  margin-bottom: 80rpx;
+  color: var(--text-muted);
 }
 
 .hero-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 60rpx;
-  font-weight: bold;
+  display: block;
+  font-size: 64rpx;
+  line-height: 1.08;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.panel {
+  padding: 32rpx;
+  border-radius: 36rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24rpx);
+}
+
+.identity-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28rpx;
+}
+
+.avatar-shell {
+  width: 176rpx;
+  height: 176rpx;
+  padding: 6rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  box-shadow: 0 18rpx 40rpx rgba(76, 111, 255, 0.2);
   margin-bottom: 20rpx;
 }
 
-.text-primary {
-  color: #8eabff;
-}
-
-.hero-subtitle {
-  font-size: 28rpx;
-  color: #adaaaa;
-  padding: 0 40rpx;
-}
-
-/* AI 球体 */
-.ai-sphere-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 80rpx;
-}
-
-.ai-sphere-bg {
-  position: absolute;
-  width: 384rpx;
-  height: 384rpx;
-  background-color: rgba(160, 255, 240, 0.2);
+.avatar-image,
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  filter: blur(120rpx);
 }
 
-.ai-sphere {
-  position: relative;
-  z-index: 10;
-  width: 192rpx;
-  height: 192rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(160, 255, 240, 0.3);
-}
-
-.ai-icon {
-  font-size: 80rpx;
-  color: #a0fff0;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-/* 表单容器 */
-.form-container {
+.avatar-placeholder {
+  background: var(--surface-strong);
+  border: 1rpx dashed var(--border);
   display: flex;
   flex-direction: column;
-  gap: 48rpx;
+  align-items: center;
+  justify-content: center;
 }
 
-.form-section {
-  margin-bottom: 32rpx;
+.avatar-plus {
+  font-size: 58rpx;
+  line-height: 1;
+  color: var(--brand);
 }
 
-.form-label {
-  display: block;
-  font-size: 24rpx;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 4rpx;
-  color: #adaaaa;
-  margin-bottom: 32rpx;
+.avatar-tip {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--text-secondary);
 }
 
-/* 性别选择 */
-.gender-grid {
+.nickname-input {
+  width: 100%;
+  height: 90rpx;
+  padding: 0 28rpx;
+  border-radius: 24rpx;
+  background: var(--surface-strong);
+  border: 1rpx solid var(--border);
+  color: var(--text);
+  font-size: 30rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.compact-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32rpx;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
 }
 
-.gender-btn {
-  padding: 48rpx;
-  border-radius: 24rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24rpx;
-  transition: all 0.3s ease;
+.metric-card {
+  padding: 24rpx;
+  border-radius: 28rpx;
+  background: var(--surface-strong);
+  border: 1rpx solid var(--border);
 }
 
-.gender-btn.active {
-  border: 1px solid rgba(142, 171, 255, 0.4);
-  background-color: #262626;
+.metric-card-wide {
+  grid-column: 1 / -1;
 }
 
-.gender-btn:not(.active) {
-  opacity: 0.6;
-}
-
-.gender-icon {
-  font-size: 60rpx;
-}
-
-.gender-btn.active .gender-icon {
-  color: #8eabff;
-}
-
-.gender-btn:not(.active) .gender-icon {
-  color: #bc87fe;
-}
-
-.gender-text {
-  font-weight: bold;
-  color: #ffffff;
-  font-size: 32rpx;
-}
-
-/* 年龄选择 */
-.age-section {
-  padding: 48rpx;
-  border-radius: 24rpx;
-}
-
-.age-header {
+.metric-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32rpx;
 }
 
-.age-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 48rpx;
-  font-weight: bold;
-  color: #8eabff;
-}
-
-.age-unit {
-  font-size: 24rpx;
-  font-weight: normal;
-  color: #adaaaa;
-  margin-left: 8rpx;
-}
-
-.slider-container {
-  position: relative;
-  height: 96rpx;
-  display: flex;
-  align-items: center;
-}
-
-.slider-track {
-  position: absolute;
-  width: 100%;
-  height: 8rpx;
-  background-color: #262626;
-  border-radius: 4rpx;
-}
-
-.slider-progress {
-  position: absolute;
-  height: 8rpx;
-  background: linear-gradient(90deg, #8eabff, #bc87fe);
-  border-radius: 4rpx;
-}
-
-.slider-thumb {
-  position: absolute;
-  width: 40rpx;
-  height: 40rpx;
-  background-color: #ffffff;
-  border: 8rpx solid #8eabff;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 0 30rpx rgba(142, 171, 255, 0.5);
-  cursor: pointer;
-}
-
-/* 身体数据 */
-.specs-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32rpx;
-}
-
-.spec-item {
-  padding: 48rpx;
-  border-radius: 24rpx;
-}
-
-.spec-input {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.spec-input-field {
-  background: transparent;
-  border: none;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 48rpx;
-  font-weight: bold;
-  color: #ffffff;
-  width: 160rpx;
-  outline: none;
-}
-
-.spec-unit {
-  font-size: 24rpx;
-  font-weight: medium;
-  color: #a0fff0;
-}
-
-.spec-item:nth-child(2) .spec-unit {
-  color: #bc87fe;
-}
-
-/* 可视化 */
-.visualization {
-  position: relative;
-  height: 128px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.visualization-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.2;
-  mix-blend-mode: overlay;
-}
-
-.visualization-content {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-  padding: 0 24px;
-}
-
-.pulse-bars {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.pulse-bar {
-  width: 4px;
-  border-radius: 2px;
-  animation: pulse 1.5s infinite;
-}
-
-.bar-1 {
-  height: 16px;
-  background-color: #a0fff0;
-  animation-delay: 0s;
-}
-
-.bar-2 {
-  height: 24px;
-  background-color: #8eabff;
-  animation-delay: 0.2s;
-}
-
-.bar-3 {
-  height: 12px;
-  background-color: #bc87fe;
-  animation-delay: 0.4s;
-}
-
-.visualization-text {
-  font-size: 10px;
-  font-weight: medium;
-  letter-spacing: 2px;
+.metric-label {
+  display: block;
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
   text-transform: uppercase;
-  color: #adaaaa;
+  color: var(--text-muted);
 }
 
-/* 操作按钮 */
-.action-button-container {
-  width: 100%;
-  margin-top: 96rpx;
+.metric-value {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: var(--brand);
 }
 
-.action-button {
-  width: 100%;
-  background: linear-gradient(90deg, #8eabff, #156aff);
-  color: #002971;
-  font-weight: bold;
-  padding: 40rpx;
-  border-radius: 9999rpx;
+.age-slider {
+  margin: 8rpx 0 0;
+}
+
+.age-range {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 22rpx;
+}
+
+.metric-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10rpx;
+  margin-top: 24rpx;
+}
+
+.metric-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 50rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.metric-unit {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  padding-bottom: 10rpx;
+}
+
+.privacy-row {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16rpx;
-  box-shadow: 0 16rpx 60rpx rgba(21, 106, 255, 0.4);
-  transition: all 0.3s ease;
-  font-size: 32rpx;
-}
-
-.action-button:hover {
-  opacity: 0.9;
-}
-
-.action-button:active {
-  transform: scale(0.95);
-}
-
-.action-icon {
-  font-size: 40rpx;
+  gap: 20rpx;
+  margin-top: 24rpx;
 }
 
 .privacy-text {
-  text-align: center;
-  font-size: 20rpx;
-  color: #adaaaa;
-  margin-top: 32rpx;
-  opacity: 0.5;
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: var(--text-secondary);
 }
 
-/* 玻璃面板样式 */
-.glass-panel {
-  background: rgba(38, 38, 38, 0.4);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(142, 171, 255, 0.1);
+.privacy-chip {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: var(--surface-tint);
+  color: var(--brand);
+  font-size: 22rpx;
 }
 
-/* 背景网格 */
-.bg-mesh {
-  background: radial-gradient(circle at 10% 20%, rgba(142, 171, 255, 0.1) 0%, transparent 40%),
-              radial-gradient(circle at 90% 80%, rgba(188, 135, 254, 0.1) 0%, transparent 40%);
+.submit-btn {
+  margin-top: 28rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, var(--brand), var(--brand-soft));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 34rpx;
+  line-height: 1;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+
+.submit-btn::after {
+  border: none;
 }
 </style>

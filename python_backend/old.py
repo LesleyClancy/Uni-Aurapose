@@ -690,7 +690,7 @@ class ExerciseCounterOptimized:
         self.last_predictions = deque(maxlen=10)
         self.exercise_states = {exercise: 'none' for exercise in target_exercises}
         self.position_trackers = {exercise: deque(maxlen=20) for exercise in target_exercises}
-        self.confidence_threshold = 0.7
+        self.confidence_threshold = 0.55
         self.state_change_threshold = 5
 
         self.rep_start_times = {exercise: None for exercise in target_exercises}
@@ -716,7 +716,8 @@ class ExerciseCounterOptimized:
                 'count_on_angle_change': True,
                 'angle_threshold': 30,
                 'min_angle': 70,
-                'max_angle': 160
+                'max_angle': 160,
+                'warmup_frames': 5
             },
             'hammer curl': {
                 'key_joints': [13, 14, 15, 16],
@@ -725,8 +726,9 @@ class ExerciseCounterOptimized:
                 'angle_threshold': 20,
                 'min_angle': 60,
                 'max_angle': 170,
+                'warmup_frames': 4,
                 'stable_frames_required': 1,
-                'transition_frames_required': 2,
+                'transition_frames_required': 1,
                 'enhanced_detection': True
             },
             'push-up': {
@@ -736,8 +738,9 @@ class ExerciseCounterOptimized:
                 'angle_threshold': 20,
                 'min_angle': 70,
                 'max_angle': 140,
-                'stable_frames_required': 2,
-                'transition_frames_required': 3,
+                'warmup_frames': 5,
+                'stable_frames_required': 1,
+                'transition_frames_required': 1,
                 'use_enhanced_detection': True
             },
             'shoulder press': {
@@ -746,7 +749,8 @@ class ExerciseCounterOptimized:
                 'count_on_angle_change': True,
                 'angle_threshold': 30,
                 'min_angle': 60,
-                'max_angle': 160
+                'max_angle': 160,
+                'warmup_frames': 5
             },
             'squat': {
                 'key_joints': [23, 24, 25, 26, 27, 28],
@@ -754,7 +758,8 @@ class ExerciseCounterOptimized:
                 'count_on_angle_change': True,
                 'angle_threshold': 40,
                 'min_angle': 70,
-                'max_angle': 170
+                'max_angle': 170,
+                'warmup_frames': 5
             }
         }
 
@@ -776,6 +781,15 @@ class ExerciseCounterOptimized:
             return angles[-1] if angles else 0
         recent_angles = list(angles)[-window_size:]
         return np.mean(recent_angles)
+
+    def get_warmup_frames(self, exercise, default=5):
+        return self.exercise_configs.get(exercise, {}).get('warmup_frames', default)
+
+    def get_stable_frames_required(self, exercise, default=1):
+        return self.exercise_configs.get(exercise, {}).get('stable_frames_required', default)
+
+    def get_transition_frames_required(self, exercise, default=1):
+        return self.exercise_configs.get(exercise, {}).get('transition_frames_required', default)
 
     def start_rep_timer(self, exercise):
         self.rep_start_times[exercise] = time.time()
@@ -870,7 +884,7 @@ class ExerciseCounterOptimized:
 
         self.position_trackers[exercise].append(current_angle)
 
-        if len(self.position_trackers[exercise]) < 6:
+        if len(self.position_trackers[exercise]) < self.get_warmup_frames(exercise, default=4):
             return False
 
         data = self.exercise_specific_data[exercise]
@@ -899,6 +913,7 @@ class ExerciseCounterOptimized:
         """带速度检测的hammer curl识别"""
         current_state = self.exercise_states[exercise]
         data = self.exercise_specific_data[exercise]
+        transition_frames_required = self.get_transition_frames_required(exercise, default=1)
 
         stability_margin = 8
         velocity_threshold = 1.5
@@ -930,7 +945,7 @@ class ExerciseCounterOptimized:
                 return False
 
             if (angle < min_threshold + 15 and
-                    data['transition_frames'] >= 2):
+                    data['transition_frames'] >= transition_frames_required):
                 self.exercise_states[exercise] = 'flexed'
                 data['stable_frames'] = 0
                 return False
@@ -955,7 +970,7 @@ class ExerciseCounterOptimized:
                 return False
 
             if (angle > max_threshold - 15 and
-                    data['transition_frames'] >= 2):
+                    data['transition_frames'] >= transition_frames_required):
                 self.exercise_states[exercise] = 'extended'
                 data['stable_frames'] = 0
                 return True
@@ -987,7 +1002,7 @@ class ExerciseCounterOptimized:
         current_angle = np.mean(angles)
         self.position_trackers[exercise].append(current_angle)
 
-        if len(self.position_trackers[exercise]) < 10:
+        if len(self.position_trackers[exercise]) < self.get_warmup_frames(exercise):
             return False
 
         data = self.exercise_specific_data[exercise]
@@ -1100,7 +1115,7 @@ class ExerciseCounterOptimized:
 
         self.position_trackers[exercise].append(combined_score)
 
-        if len(self.position_trackers[exercise]) < 10:
+        if len(self.position_trackers[exercise]) < self.get_warmup_frames(exercise):
             return False
 
         data = self.exercise_specific_data[exercise]
@@ -1121,6 +1136,8 @@ class ExerciseCounterOptimized:
     def _detect_pushup_rep_improved(self, exercise, score, max_threshold, min_threshold):
         current_state = self.exercise_states[exercise]
         data = self.exercise_specific_data[exercise]
+        stable_frames_required = self.get_stable_frames_required(exercise, default=1)
+        transition_frames_required = self.get_transition_frames_required(exercise, default=1)
 
         recent_scores = list(self.position_trackers[exercise])[-10:]
         if len(recent_scores) < 5:
@@ -1143,7 +1160,7 @@ class ExerciseCounterOptimized:
             else:
                 data['stable_frames'] = max(0, data['stable_frames'] - 1)
 
-            if (data['stable_frames'] >= 2 and
+            if (data['stable_frames'] >= stable_frames_required and
                     score < max_threshold - 20 and
                     score_velocity < -2):
                 self.exercise_states[exercise] = 'going_down'
@@ -1159,7 +1176,7 @@ class ExerciseCounterOptimized:
                 return False
 
             if (score < min_threshold + 25 and
-                    data['transition_frames'] >= 3):
+                    data['transition_frames'] >= transition_frames_required):
                 self.exercise_states[exercise] = 'down'
                 data['stable_frames'] = 0
                 data['transition_frames'] = 0
@@ -1170,7 +1187,7 @@ class ExerciseCounterOptimized:
             else:
                 data['stable_frames'] = max(0, data['stable_frames'] - 1)
 
-            if (data['stable_frames'] >= 2 and
+            if (data['stable_frames'] >= stable_frames_required and
                     score > min_threshold + 35 and
                     score_velocity > 2):
                 self.exercise_states[exercise] = 'going_up'
@@ -1186,7 +1203,7 @@ class ExerciseCounterOptimized:
                 return False
 
             if (score > max_threshold - 15 and
-                    data['transition_frames'] >= 3):
+                    data['transition_frames'] >= transition_frames_required):
                 self.exercise_states[exercise] = 'up'
                 data['stable_frames'] = 0
                 data['transition_frames'] = 0

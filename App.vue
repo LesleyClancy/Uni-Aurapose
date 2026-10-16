@@ -1,17 +1,17 @@
 <script>
-	export default {
-		onLaunch: function() {
-			console.log('App Launch')
-		},
-		onShow: function() {
-			console.log('App Show')
-		},
-		onHide: function() {
-			console.log('App Hide')
-		}
-	}
+import { applyTabBarLocale, getLocale } from './common/i18n.js'
+
+export default {
+  onLaunch() {
+    applyTabBarLocale(getLocale())
+  },
+  onShow() {
+    applyTabBarLocale(getLocale())
+  },
+  onHide() {}
+}
 </script>
 
 <style>
-	/*每个页面公共css */
+/* global page styles */
 </style>

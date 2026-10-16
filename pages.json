@@ -1,85 +1,118 @@
 {
-	"pages": [ 
-		{
-			"path": "pages/onboarding/onboarding",
-			"style": {
-				"navigationBarTitleText": "AuraPose",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		},
-		{
-			"path": "pages/home/home",
-			"style": {
-				"navigationBarTitleText": "AuraPose",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		},
-		{
-			"path": "pages/fitness/fitness",
-			"style": {
-				"navigationBarTitleText": "AuraPose",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		},
-		{
-			"path": "pages/profile/profile",
-			"style": {
-				"navigationBarTitleText": "AuraPose",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		},
-		{
-			"path": "pages/strength/strength",
-			"style": {
-				"navigationBarTitleText": "力量训练",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		},
-		{
-			"path": "pages/realtime/realtime",
-			"style": {
-				"navigationBarTitleText": "实时训练",
-				"navigationBarTextStyle": "white",
-				"navigationBarBackgroundColor": "#0e0e0e",
-				"backgroundColor": "#0e0e0e"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "AuraPose",
-		"navigationBarBackgroundColor": "#0e0e0e",
-		"backgroundColor": "#0e0e0e"
-	},
-	"tabBar": {
-		"color": "#565555",
-		"selectedColor": "#8eabff",
-		"backgroundColor": "rgba(14, 14, 14, 0.8)",
-		"borderStyle": "black",
-		"list": [
-			{
-				"pagePath": "pages/home/home",
-				"text": "主页"
-			},
-			{
-				"pagePath": "pages/fitness/fitness",
-				"text": "健身"
-			},
-			{
-				"pagePath": "pages/profile/profile",
-				"text": "我的"
-			}
-		]
-	},
-	"uniIdRouter": {}
+  "pages": [
+    {
+      "path": "pages/onboarding/onboarding",
+      "style": {
+        "navigationBarTitleText": "AuraPose",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "AuraPose",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/avatar-crop/avatar-crop",
+      "style": {
+        "navigationBarTitleText": "头像裁切",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/fitness/fitness",
+      "style": {
+        "navigationBarTitleText": "AuraPose",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "AuraPose",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/groups/groups",
+      "style": {
+        "navigationBarTitleText": "我的群组",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "通用设置",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/strength/strength",
+      "style": {
+        "navigationBarTitleText": "力量训练",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    },
+    {
+      "path": "pages/realtime/realtime",
+      "style": {
+        "navigationBarTitleText": "实时训练",
+        "navigationBarTextStyle": "white",
+        "navigationBarBackgroundColor": "#0e0e0e",
+        "backgroundColor": "#0e0e0e"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "AuraPose",
+    "navigationBarBackgroundColor": "#0e0e0e",
+    "backgroundColor": "#0e0e0e"
+  },
+  "tabBar": {
+    "color": "#565555",
+    "selectedColor": "#8eabff",
+    "backgroundColor": "rgba(14, 14, 14, 0.8)",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "static/tabbar/home-inactive.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/fitness/fitness",
+        "text": "健身",
+        "iconPath": "static/tabbar/fitness-inactive.png",
+        "selectedIconPath": "static/tabbar/fitness-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile-inactive.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
+      }
+    ]
+  },
+  "uniIdRouter": {}
 }

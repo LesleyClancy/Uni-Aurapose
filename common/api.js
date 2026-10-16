@@ -42,6 +42,21 @@ export function fetchBootstrap(openid = getOpenid()) {
   return apiRequest(`/api/app/bootstrap?openid=${encodeURIComponent(openid)}`)
 }
 
+export function fetchRecoveryStatus(openid = getOpenid()) {
+  return apiRequest(`/api/users/${encodeURIComponent(openid)}/recovery`)
+}
+
+export function saveRecoveryCheckin(prsScore, openid = getOpenid()) {
+  return apiRequest(`/api/users/${encodeURIComponent(openid)}/recovery`, {
+    method: 'POST',
+    data: { prs_score: prsScore }
+  })
+}
+
+export function fetchProgress(days = 7, openid = getOpenid()) {
+  return apiRequest(`/api/users/${encodeURIComponent(openid)}/progress?days=${encodeURIComponent(days)}`)
+}
+
 export function saveProfile(profile) {
   return apiRequest('/api/users/upsert', {
     method: 'POST',

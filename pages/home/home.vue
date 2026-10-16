@@ -1,203 +1,326 @@
 <template>
-  <view class="container bg-background">
-    <!-- Top Navigation -->
-    <header class="header">
-      <div class="header-left">
-        <span class="app-title">AuraPose</span>
-      </div>
-      <div class="header-right">
-      </div>
-    </header>
+  <view :class="['page', themeClass]" :style="themeVars">
+    <view class="ambient ambient-top"></view>
+    <view class="ambient ambient-bottom"></view>
 
-    <!-- Main Content -->
-    <main class="main-content bg-mesh">
-      <!-- Personalized Greeting & AI Kinetic Sphere -->
-      <section class="greeting-section">
-        <div class="kinetic-sphere"></div>
-        <div class="greeting-content">
-          <h1 class="greeting-text">你好, 健美达人</h1>
-          <p class="greeting-subtext">准备好超越<br/><span class="text-primary">昨天的自己</span>了吗？</p>
-          <div class="ai-suggestion glass-panel">
-            <div class="ai-suggestion-content">
-              <h3 class="ai-suggestion-title">AuraPose 今日建议</h3>
-              <p class="ai-suggestion-text">根据你昨日的恢复数据，建议今天进行 <span class="text-secondary font-semibold">45分钟高强度间歇训练 (HIIT)</span> 以突破体能瓶颈。</p>
-            </div>
-          </div>
-        </div>
-      </section>
+    <view class="header">
+      <view>
+        <text class="brand">AuraPose</text>
+        <text class="header-subtitle">{{ themeMode === 'light' ? copy.dayMode : copy.nightMode }}</text>
+      </view>
+    </view>
 
-      <!-- Metrics Bento Grid -->
-      <section class="metrics-grid">
-        <!-- Calories Card -->
-        <div class="metric-card">
-          <div class="metric-header">
-            <div class="metric-icon error">
-              <text class="material-icons">local_fire_department</text>
-            </div>
-            <span class="metric-change">+12%</span>
-          </div>
-          <div class="metric-value">842</div>
-          <div class="metric-label">千卡 (Calories)</div>
-          <div class="metric-progress">
-            <div class="metric-progress-bar error" style="width: 70%"></div>
-          </div>
-        </div>
+    <view class="hero">
+      <view class="hero-copy">
+        <text class="hero-kicker">{{ heroKicker }}</text>
+        <text class="hero-title">{{ copy.heroTitle }}</text>
+        <text class="hero-text">{{ copy.heroText }}</text>
+      </view>
+      <view class="hero-note">
+        <text class="hero-note-label">{{ copy.heroNoteLabel }}</text>
+        <text class="hero-note-text">{{ copy.heroNoteText }}</text>
+      </view>
+    </view>
 
-        <!-- Minutes Card -->
-        <div class="metric-card">
-          <div class="metric-header">
-            <div class="metric-icon secondary">
-              <text class="material-icons">timer</text>
-            </div>
-            <span class="metric-change">今日目标</span>
-          </div>
-          <div class="metric-value">56</div>
-          <div class="metric-label">分钟 (Minutes)</div>
-          <div class="metric-bars">
-            <div class="metric-bar tertiary" style="height: 30%"></div>
-            <div class="metric-bar tertiary" style="height: 50%"></div>
-            <div class="metric-bar tertiary" style="height: 80%"></div>
-            <div class="metric-bar tertiary" style="height: 100%"></div>
-          </div>
-        </div>
+    <view class="focus-shell">
+      <text class="focus-shell-title">{{ copy.weekTitle }}</text>
+      <view class="focus-section">
+        <view class="focus-card calorie-card">
+          <view class="focus-head">
+            <text class="focus-label">{{ copy.caloriesLabel }}</text>
+            <text class="focus-trend">{{ totalCalories > 0 ? copy.caloriesTracked : '' }}</text>
+          </view>
+          <text class="focus-value">{{ totalCalories }}</text>
+          <text class="focus-unit">kcal</text>
+          <view class="energy-line">
+            <view class="energy-fill" :style="{ width: calorieProgressWidth }"></view>
+          </view>
+          <view class="focus-foot">
+            <text>{{ copy.calorieGoal }}</text>
+          </view>
+        </view>
 
-        <!-- Form Score Card -->
-        <div class="metric-card">
-          <div class="metric-header">
-            <div class="metric-icon primary">
-              <text class="material-icons">verified</text>
-            </div>
-            <span class="metric-change text-primary">优秀</span>
-          </div>
-          <div class="metric-value">92%</div>
-          <div class="metric-label">标准度 (Form Score)</div>
-          <div class="metric-progress">
-            <div class="metric-progress-bar primary" style="width: 92%"></div>
-          </div>
-        </div>
+        <view class="focus-card minutes-card">
+          <view class="focus-head">
+            <text class="focus-label">{{ copy.minutesLabel }}</text>
+            <text class="focus-trend soft">{{ totalMinutes > 0 ? copy.minutesLogged : copy.minutesWaiting }}</text>
+          </view>
+          <view class="minutes-main">
+            <view class="minutes-ring" :style="minutesRingStyle">
+              <view class="minutes-ring-core">
+                <text class="minutes-value">{{ totalMinutes }}</text>
+                <text class="minutes-unit">{{ copy.minuteUnit }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
 
-        <!-- Heart Rate Card -->
-        <div class="metric-card">
-          <div class="metric-header">
-            <div class="metric-icon tertiary">
-              <text class="material-icons">favorite</text>
-            </div>
-            <div class="heart-rate-bars">
-              <div class="heart-rate-bar"></div>
-              <div class="heart-rate-bar active"></div>
-              <div class="heart-rate-bar"></div>
-            </div>
-          </div>
-          <div class="metric-value">78</div>
-          <div class="metric-label">心率 (Heart Rate)</div>
-          <div class="metric-unit">bpm</div>
-        </div>
-      </section>
+    <view class="groups-shell">
+      <view class="section-head">
+        <view>
+          <text class="section-kicker">{{ copy.groupsKicker }}</text>
+          <text class="section-title groups-title">{{ copy.groupsTitle }}</text>
+        </view>
+      </view>
+      <scroll-view class="groups-scroll" scroll-x="true" show-scrollbar="false">
+        <view class="groups-row">
+          <view v-for="item in ownedGroups" :key="item.id" :class="['group-chip-card', item.coverTheme]">
+            <text class="group-chip-tag">{{ item.tag }}</text>
+            <text class="group-chip-name">{{ item.name }}</text>
+            <text class="group-chip-desc">{{ item.description }}</text>
+            <view class="group-chip-foot">
+              <text class="group-chip-meta">{{ item.members }} 人</text>
+              <text class="group-chip-meta">{{ item.inviteCode }}</text>
+            </view>
+          </view>
+          <view v-if="!ownedGroups.length" class="group-empty-card" @click="goGroups">
+            <view class="group-empty-copy">
+              <text class="group-empty-title">{{ copy.groupsEmptyTitle }}</text>
+              <text class="group-empty-text">{{ copy.groupsEmptyText }}</text>
+              <text class="group-empty-cta">{{ copy.groupsCreateCta }}</text>
+            </view>
+            <view class="group-empty-visual">
+              <view class="group-visual-card">
+                <view class="group-visual-badge">组队</view>
+                <view class="team-node team-node-main">
+                  <view class="team-head"></view>
+                  <view class="team-body"></view>
+                </view>
+                <view class="team-node team-node-left">
+                  <view class="team-head"></view>
+                  <view class="team-body"></view>
+                </view>
+                <view class="team-node team-node-right">
+                  <view class="team-head"></view>
+                  <view class="team-body"></view>
+                </view>
+                <view class="team-link team-link-left"></view>
+                <view class="team-link team-link-right"></view>
+                <view class="team-pulse"></view>
+                <view class="team-plus">+</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
 
-      <!-- Recommended Challenges -->
-      <section class="challenges-section">
-        <div class="challenges-header">
-          <div class="challenges-header-left">
-            <h2 class="challenges-title">个性化挑战</h2>
-            <p class="challenges-subtitle">AuraPose 选出的最适合你的今日突破</p>
-          </div>
-          <button class="view-all-btn">
-            全部挑战
-          </button>
-        </div>
-        <div class="challenges-scroll no-scrollbar">
-          <!-- Challenge Card 1 -->
-          <div class="challenge-card">
-            <div class="challenge-image-container">
-              <img src="/static/logo.png" alt="Strength Training" class="challenge-image" />
-              <div class="challenge-gradient"></div>
-              <div class="challenge-content">
-                <span class="challenge-badge primary">力量大师</span>
-                <h3 class="challenge-title">14天硬派增肌计划</h3>
-                <div class="challenge-meta">
-                  <span class="challenge-meta-item">
-                    45 分钟/天
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <view class="readiness-card">
+      <view class="section-head readiness-head">
+        <view>
+          <text class="section-kicker">{{ copy.readinessKicker }}</text>
+          <text class="section-title">{{ copy.readinessTitle }}</text>
+        </view>
+        <view class="readiness-status">
+          <text class="readiness-status-label">{{ hasReadinessToday ? copy.readinessSaved : copy.readinessCta }}</text>
+          <text class="readiness-status-value">{{ hasReadinessToday ? `${readinessTodayScore}/10` : '--' }}</text>
+        </view>
+      </view>
+      <text class="readiness-text">{{ copy.readinessText }}</text>
+      <view class="readiness-range">
+        <text class="readiness-range-label">{{ copy.readinessScaleLow }}</text>
+        <text class="readiness-range-label">{{ copy.readinessScaleHigh }}</text>
+      </view>
+      <view class="readiness-grid">
+        <button
+          v-for="value in prsOptions"
+          :key="value"
+          :class="['readiness-chip', { active: readinessTodayScore === value }]"
+          :disabled="readinessSaving"
+          @click="savePrs(value)"
+        >
+          {{ value }}
+        </button>
+      </view>
+      <view class="readiness-foot">
+        <text class="readiness-footline">{{ latestReadinessLabel }}</text>
+        <text class="readiness-footline">{{ copy.sessionLoadTitle }}: {{ weeklySessionLoad }}</text>
+      </view>
+      <text class="readiness-caption">{{ copy.sessionLoadSubtitle }}</text>
+    </view>
 
-          <!-- Challenge Card 2 -->
-          <div class="challenge-card">
-            <div class="challenge-image-container">
-              <img src="/static/logo.png" alt="Yoga Session" class="challenge-image" />
-              <div class="challenge-gradient"></div>
-              <div class="challenge-content">
-                <span class="challenge-badge tertiary">灵活性</span>
-                <h3 class="challenge-title">晨间唤醒：流瑜伽</h3>
-                <div class="challenge-meta">
-                  <span class="challenge-meta-item">
-                    20 分钟/天
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <view class="section-head">
+      <view>
+        <text class="section-kicker">{{ copy.sectionKicker }}</text>
+        <text class="section-title">{{ copy.sectionTitle }}</text>
+      </view>
+      <text class="section-link">{{ copy.sectionLink }}</text>
+    </view>
 
-      <!-- Quick AI Analysis -->
-      <section class="ai-analysis glass-panel">
-        <div class="ai-analysis-bg"></div>
-        <div class="ai-analysis-content">
-          <div class="ai-analysis-text">
-            <h2 class="ai-analysis-title">AuraPose深度分析报告</h2>
-            <p class="ai-analysis-description">您的肌肉群恢复率为 78%，适合进行背部与核心训练。查看完整的生物识别报告以获取更精准的训练参数。</p>
-            <button class="ai-analysis-btn">查看分析详情</button>
-          </div>
-          <div class="ai-analysis-chart">
-            <div class="chart-container">
-              <svg class="chart-svg" viewBox="0 0 100 100">
-                <!-- 最外层五边形 -->
-                <polygon class="chart-polygon" points="50,10 85,35 75,80 25,80 15,35" />
-                <!-- 第二层五边形 -->
-                <polygon class="chart-polygon" points="50,20 77.5,40 67.5,70 32.5,70 22.5,40" />
-                <!-- 第三层五边形 -->
-                <polygon class="chart-polygon" points="50,30 70,45 60,60 40,60 30,45" />
-                <!-- 第四层五边形 -->
-                <polygon class="chart-polygon" points="50,40 62.5,45 55,55 45,55 37.5,45" />
-                <!-- 第五层五边形 -->
-                <polygon class="chart-polygon" points="50,45 57.5,47.5 52.5,52.5 47.5,52.5 42.5,47.5" />
-                <!-- 中心点 -->
-                <circle class="chart-center" cx="50" cy="50" r="1" />
-              </svg>
-              <div class="chart-label top">力量</div>
-              <div class="chart-label right">爆发</div>
-              <div class="chart-label bottom-right">恢复</div>
-              <div class="chart-label bottom-left">柔韧</div>
-              <div class="chart-label left">耐力</div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+    <scroll-view class="challenge-scroll" scroll-x="true" show-scrollbar="false">
+      <view class="challenge-row">
+        <view class="challenge-card" v-for="item in challengeCards" :key="item.title">
+          <image class="challenge-image" :src="item.image" mode="aspectFill" />
+          <view class="challenge-mask"></view>
+          <view class="challenge-content">
+            <text class="challenge-tag">{{ item.tag }}</text>
+            <text class="challenge-title">{{ item.title }}</text>
+            <text class="challenge-meta">{{ item.duration }}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
 
-
-
-
+    <view class="analysis-card">
+      <view class="analysis-copy">
+        <text class="section-kicker">{{ copy.overviewKicker }}</text>
+        <text class="analysis-title">{{ copy.overviewTitle }}</text>
+        <text class="analysis-text">{{ copy.overviewText }}</text>
+      </view>
+      <view class="analysis-matrix">
+        <view class="matrix-item" v-for="item in matrixItems" :key="item.label">
+          <text class="matrix-label">{{ item.label }}</text>
+          <text class="matrix-value">{{ item.value }}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
-import { fetchBootstrap } from '../../common/api.js'
+import { fetchBootstrap, fetchProgress, fetchRecoveryStatus, saveRecoveryCheckin } from '../../common/api.js'
+import {
+  applyNativeTheme,
+  getSceneAsset,
+  getStoredProfile,
+  getThemeClass,
+  getThemeMode,
+  getThemeVars
+} from '../../common/theme.js'
+import {
+  applyPageLocale,
+  formatMessage,
+  getCopy,
+  getLocale
+} from '../../common/i18n.js'
+import { getGroupState } from '../../common/groups.js'
+
+const CALORIE_TARGET = 1000
+const MINUTE_TARGET = 60
+
+function percentWidth(value, max) {
+  const ratio = max > 0 ? Math.min(1, Number(value || 0) / max) : 0
+  return `${Math.round(ratio * 100)}%`
+}
 
 export default {
   data() {
     return {
+      themeMode: getThemeMode(),
+      locale: getLocale(),
       bootstrap: null,
-      // 页面数据
+      progress: null,
+      recovery: null,
+      readinessSaving: false,
+      groupState: getGroupState()
+    }
+  },
+  computed: {
+    copy() {
+      return getCopy('home', this.locale)
+    },
+    themeClass() {
+      return getThemeClass(this.themeMode)
+    },
+    themeVars() {
+      return getThemeVars(this.themeMode)
+    },
+    displayName() {
+      const user = (this.bootstrap && this.bootstrap.user) || {}
+      return user.nickname || getStoredProfile().nickname || this.copy.fallbackName
+    },
+    heroKicker() {
+      return formatMessage(this.copy.heroKicker, { name: this.displayName })
+    },
+    totals() {
+      return ((this.bootstrap && this.bootstrap.summary) || {}).totals || {}
+    },
+    totalCalories() {
+      return Math.round(Number(this.totals.total_calories || 0))
+    },
+    totalMinutes() {
+      const totalSeconds = Number(this.totals.total_seconds || 0)
+      return Math.floor(totalSeconds / 60)
+    },
+    prsOptions() {
+      return Array.from({ length: 11 }, (_, index) => index)
+    },
+    hasReadinessToday() {
+      return (((this.recovery || {}).today || {}).prs_score) !== undefined && (((this.recovery || {}).today || {}).prs_score) !== null
+    },
+    readinessTodayScore() {
+      return Number((((this.recovery || {}).today || {}).prs_score) ?? 0) || 0
+    },
+    latestReadinessLabel() {
+      const latest = ((this.recovery || {}).latest || {}).prs_score
+      if (latest === undefined || latest === null) {
+        return this.copy.readinessEmpty
+      }
+      return formatMessage(this.copy.readinessLatest, { score: latest })
+    },
+    weeklySessionLoad() {
+      const overview = ((this.progress || {}).overview || {})
+      return Number(overview.total_session_load || 0).toFixed(1)
+    },
+    calorieProgressWidth() {
+      return percentWidth(this.totalCalories, CALORIE_TARGET)
+    },
+    minutesRingStyle() {
+      const progress = percentWidth(this.totalMinutes, MINUTE_TARGET)
+      return {
+        background: `conic-gradient(var(--brand) 0 ${progress}, rgba(124, 228, 215, 0.18) ${progress} 100%)`
+      }
+    },
+    matrixItems() {
+      return [
+        { label: this.copy.matrixMinutes, value: `${this.totalMinutes} min` },
+        { label: this.copy.matrixCalories, value: `${this.totalCalories} kcal` },
+        { label: this.copy.matrixSessions, value: Number(this.totals.sessions || 0) > 0 ? `${this.totals.sessions}` : '0' }
+      ]
+    },
+    challengeCards() {
+      return [
+        {
+          tag: this.copy.challengeStrengthTag,
+          title: this.copy.challengeStrengthTitle,
+          duration: this.copy.challengeStrengthDuration,
+          image: getSceneAsset('strengthBuilder', this.themeMode)
+        },
+        {
+          tag: this.copy.challengeYogaTag,
+          title: this.copy.challengeYogaTitle,
+          duration: this.copy.challengeYogaDuration,
+          image: getSceneAsset('flowYoga', this.themeMode)
+        }
+      ]
+    },
+    ownedGroups() {
+      return (this.groupState.ownedGroups || []).slice(0, 4)
     }
   },
   onLoad() {
+    this.syncLocale()
     this.loadBootstrap()
+    this.loadInsights()
+  },
+  onShow() {
+    this.syncTheme()
+    this.syncLocale()
+    this.groupState = getGroupState()
+    this.loadBootstrap()
+    this.loadInsights()
   },
   methods: {
+    syncTheme() {
+      this.themeMode = getThemeMode()
+      applyNativeTheme(this.themeMode)
+    },
+    syncLocale() {
+      this.locale = getLocale()
+      applyPageLocale('home', this.locale)
+    },
     async loadBootstrap() {
       try {
         this.bootstrap = await fetchBootstrap()
@@ -205,736 +328,815 @@ export default {
         console.warn('bootstrap failed', err)
       }
     },
-    // 页面方法
+    async loadInsights() {
+      try {
+        const [progress, recovery] = await Promise.all([
+          fetchProgress(7),
+          fetchRecoveryStatus()
+        ])
+        this.progress = progress
+        this.recovery = recovery
+      } catch (err) {
+        console.warn('insight load failed', err)
+      }
+    },
+    async savePrs(score) {
+      if (this.readinessSaving) {
+        return
+      }
+      this.readinessSaving = true
+      try {
+        this.recovery = await saveRecoveryCheckin(score)
+        uni.showToast({ title: this.copy.saveSuccess, icon: 'none' })
+      } catch (err) {
+        uni.showToast({ title: this.copy.saveFailed, icon: 'none' })
+        console.warn('save readiness failed', err)
+      } finally {
+        this.readinessSaving = false
+      }
+    },
+    goGroups() {
+      uni.navigateTo({ url: '/pages/groups/groups' })
+    }
+  },
+  watch: {
+    locale() {
+      this.loadInsights()
+    }
   }
 }
 </script>
 
 <style>
-/* 全局样式 */
-.container {
+.page {
   min-height: 100vh;
-  background-color: #0e0e0e;
-  color: #ffffff;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 36rpx 30rpx 56rpx;
+  background:
+    radial-gradient(circle at top right, var(--hero-glow), transparent 34%),
+    radial-gradient(circle at 10% 40%, var(--hero-glow-alt), transparent 26%),
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-soft) 100%);
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
 }
 
-/* 顶部导航 */
+.ambient {
+  position: absolute;
+  border-radius: 999rpx;
+  filter: blur(70rpx);
+}
+
+.ambient-top {
+  width: 260rpx;
+  height: 260rpx;
+  right: -90rpx;
+  top: 160rpx;
+  background: var(--hero-glow);
+}
+
+.ambient-bottom {
+  width: 240rpx;
+  height: 240rpx;
+  left: -90rpx;
+  bottom: 180rpx;
+  background: var(--hero-glow-alt);
+}
+
+.header,
+.hero,
+.focus-shell,
+.readiness-card,
+.section-head,
+.challenge-scroll,
+.analysis-card {
+  position: relative;
+  z-index: 2;
+}
+
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 30px;
-  background-color: #0e0e0e;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  align-items: flex-start;
+  margin-bottom: 28rpx;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.brand {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--brand);
 }
 
-.logo-icon {
-  font-size: 24px;
-  color: #8eabff;
+.header-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--text-muted);
 }
 
-.app-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  background: linear-gradient(90deg, #8eabff, #bc87fe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
+.hero {
+  padding: 32rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-strong) 100%);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
+  margin-bottom: 28rpx;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.notification-btn {
-  background: none;
-  border: none;
-  color: #adaaaa;
-  font-size: 24px;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid rgba(142, 171, 255, 0.2);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(142, 171, 255, 0.1);
-}
-
-.avatar-icon {
-  font-size: 20px;
-  color: #8eabff;
-}
-
-/* 主内容 */
-.main-content {
-  padding: 16px 30px;
-  min-height: calc(100vh - 64px);
-}
-
-/* 背景网格 */
-.bg-mesh {
-  background: radial-gradient(at 0% 0%, rgba(142, 171, 255, 0.15) 0px, transparent 50%),
-              radial-gradient(at 100% 100%, rgba(188, 135, 254, 0.15) 0px, transparent 50%);
-}
-
-/* 问候区域 */
-.greeting-section {
-  position: relative;
-  padding: 32px 0;
-  margin-bottom: 40px;
-  overflow: hidden;
-  border-radius: 24px;
-}
-
-.kinetic-sphere {
-  position: absolute;
-  right: -80px;
-  top: -80px;
-  width: 256px;
-  height: 256px;
-  background: linear-gradient(135deg, #8eabff 0%, #bc87fe 100%);
-  filter: blur(40px);
-  opacity: 0.4;
-  border-radius: 50%;
-}
-
-.greeting-content {
-  position: relative;
-  z-index: 10;
-}
-
-.greeting-text {
-  font-size: 18px;
-  font-weight: medium;
-  color: #adaaaa;
-  margin-bottom: 4px;
-}
-
-.greeting-subtext {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 40px;
-  font-weight: bold;
-  line-height: 1.1;
-  margin-bottom: 24px;
-}
-
-.text-primary {
-  color: #8eabff;
-}
-
-.ai-suggestion {
-  max-width: 400px;
-  padding: 24px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  gap: 16px;
-}
-
-.ai-suggestion-icon {
-  padding: 12px;
-  background-color: rgba(160, 255, 240, 0.1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ai-suggestion-icon .material-symbols-outlined {
-  font-size: 24px;
-  color: #a0fff0;
-}
-
-.ai-suggestion-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #a0fff0;
+.hero-kicker,
+.section-kicker {
+  display: block;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 4px;
+  color: var(--text-muted);
 }
 
-.ai-suggestion-text {
-  font-size: 14px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.9);
+.hero-title {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 64rpx;
+  line-height: 1.08;
+  font-weight: 700;
 }
 
-.text-secondary {
-  color: #bc87fe;
+.hero-text {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: var(--text-secondary);
 }
 
-/* 指标网格 */
-.metrics-grid {
+.hero-note {
+  margin-top: 28rpx;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  background: var(--surface-tint);
+}
+
+.hero-note-label,
+.hero-note-text {
+  display: block;
+}
+
+.hero-note-label {
+  font-size: 22rpx;
+  color: var(--brand);
+  margin-bottom: 8rpx;
+}
+
+.hero-note-text {
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.focus-shell {
+  margin-bottom: 34rpx;
+  padding: 22rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.groups-shell {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 30rpx;
+}
+
+.groups-title {
+  font-size: 42rpx;
+}
+
+.groups-scroll {
+  white-space: nowrap;
+}
+
+.groups-row {
+  display: flex;
+  gap: 18rpx;
+  padding-right: 24rpx;
+}
+
+.group-chip-card,
+.group-empty-card {
+  width: 360rpx;
+  min-height: 280rpx;
+  padding: 26rpx;
+  border-radius: 32rpx;
+  flex-shrink: 0;
+}
+
+.group-chip-card {
+  color: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.group-empty-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-strong) 100%);
+  border: 1rpx dashed var(--border);
+  width: calc(100vw - 60rpx);
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-bottom: 16px;
-  padding: 0 4px;
+  grid-template-columns: minmax(0, 1fr) 176rpx;
+  column-gap: 18rpx;
+  align-items: start;
 }
 
-.metric-card {
-  background-color: #1a1a1a;
-  padding: 6px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.group-chip-tag,
+.group-chip-name,
+.group-chip-desc,
+.group-chip-meta,
+.group-empty-title,
+.group-empty-text,
+.group-empty-cta {
+  display: block;
+}
+
+.group-empty-copy {
+  min-width: 0;
+}
+
+.group-chip-tag {
+  display: inline-flex;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 20rpx;
+}
+
+.group-chip-name,
+.group-empty-title {
+  margin-top: 18rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.group-chip-desc,
+.group-empty-text {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
+.group-empty-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.group-chip-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.group-chip-meta {
+  font-size: 20rpx;
+  opacity: 0.92;
+}
+
+.group-empty-cta {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.group-empty-visual {
+  position: relative;
+  width: 176rpx;
+  height: 180rpx;
+  align-self: end;
+  justify-self: end;
+}
+
+.group-visual-card {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 176rpx;
+  height: 180rpx;
+  border-radius: 34rpx;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.82) 46%, rgba(240, 246, 255, 0.64) 100%),
+    linear-gradient(135deg, rgba(76, 111, 255, 0.12), rgba(45, 197, 180, 0.16));
+  border: 1rpx solid rgba(115, 138, 200, 0.14);
+  box-shadow:
+    0 20rpx 42rpx rgba(76, 111, 255, 0.12),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.group-visual-badge {
+  position: absolute;
+  left: 18rpx;
+  top: 16rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(76, 111, 255, 0.1);
+  color: var(--brand);
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.team-node {
+  position: absolute;
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  aspect-ratio: 1;
-  transition: all 0.3s ease;
+  align-items: center;
+  justify-content: center;
+  border: 8rpx solid rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16rpx 34rpx rgba(76, 111, 255, 0.14);
 }
 
-.metric-card:hover {
-  background-color: #20201f;
+.team-node-main {
+  width: 108rpx;
+  height: 108rpx;
+  left: 52rpx;
+  top: 42rpx;
+  background: linear-gradient(135deg, #4c6fff, #2dc5b4);
 }
 
-.metric-header {
+.team-node-left {
+  width: 74rpx;
+  height: 74rpx;
+  left: 18rpx;
+  top: 78rpx;
+  background: linear-gradient(135deg, #8c7cff, #b99aff 92%);
+}
+
+.team-node-right {
+  width: 78rpx;
+  height: 78rpx;
+  right: 16rpx;
+  top: 70rpx;
+  background: linear-gradient(135deg, #ff8b68, #ffb347);
+}
+
+.team-head {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.team-node-main .team-head {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.team-body {
+  width: 34rpx;
+  height: 22rpx;
+  margin-top: 8rpx;
+  border-radius: 18rpx 18rpx 12rpx 12rpx;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.team-node-main .team-body {
+  width: 42rpx;
+  height: 26rpx;
+}
+
+.team-link {
+  position: absolute;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, rgba(76, 111, 255, 0.24), rgba(45, 197, 180, 0.34));
+}
+
+.team-link-left {
+  width: 54rpx;
+  left: 62rpx;
+  top: 106rpx;
+  transform: rotate(18deg);
+}
+
+.team-link-right {
+  width: 58rpx;
+  right: 58rpx;
+  top: 102rpx;
+  transform: rotate(-18deg);
+}
+
+.team-pulse {
+  position: absolute;
+  left: 42rpx;
+  top: 32rpx;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  border: 2rpx dashed rgba(76, 111, 255, 0.2);
+}
+
+.team-plus {
+  position: absolute;
+  right: 18rpx;
+  top: 18rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4c6fff, #8ca6ff);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 18rpx rgba(76, 111, 255, 0.18);
+}
+
+.theme-sky {
+  background: linear-gradient(135deg, #4c6fff, #8ca6ff);
+}
+
+.theme-sunset {
+  background: linear-gradient(135deg, #ff8b68, #ffb347);
+}
+
+.theme-mint {
+  background: linear-gradient(135deg, #2dc5b4, #7ce4d7);
+}
+
+.theme-berry {
+  background: linear-gradient(135deg, #8c7cff, #d87cff);
+}
+
+.focus-shell-title {
+  display: block;
+  margin-bottom: 18rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.focus-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+
+.focus-card {
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18rpx);
+  display: flex;
+  flex-direction: column;
+}
+
+.calorie-card {
+  background: linear-gradient(180deg, var(--surface-strong) 0%, var(--surface) 100%);
+}
+
+.minutes-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+}
+
+.focus-head,
+.focus-foot {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
+  align-items: center;
 }
 
-.metric-icon {
-  padding: 2px;
-  border-radius: 3px;
+.focus-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+}
+
+.focus-trend {
+  font-size: 22rpx;
+  color: var(--accentWarm);
+}
+
+.focus-trend.soft {
+  color: var(--brand);
+}
+
+.focus-value {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 74rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.focus-unit {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.energy-line {
+  height: 10rpx;
+  margin: 30rpx 0 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 127, 92, 0.14);
+  overflow: hidden;
+}
+
+.energy-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accentWarm), #ffb08b);
+  box-shadow: 0 0 18rpx rgba(255, 127, 92, 0.35);
+}
+
+.focus-foot {
+  font-size: 20rpx;
+  color: var(--text-muted);
+  margin-top: auto;
+}
+
+.minutes-main {
+  margin-top: 22rpx;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.metric-icon .material-icons {
-  font-size: 10px;
-}
-
-.metric-icon.primary {
-  background-color: rgba(142, 171, 255, 0.1);
-}
-
-.metric-icon.primary .material-symbols-outlined {
-  color: #8eabff;
-}
-
-.metric-icon.secondary {
-  background-color: rgba(188, 135, 254, 0.1);
-}
-
-.metric-icon.secondary .material-symbols-outlined {
-  color: #bc87fe;
-}
-
-.metric-icon.tertiary {
-  background-color: rgba(160, 255, 240, 0.1);
-}
-
-.metric-icon.tertiary .material-symbols-outlined {
-  color: #a0fff0;
-}
-
-.metric-icon.error {
-  background-color: rgba(255, 113, 108, 0.1);
-}
-
-.metric-icon.error .material-symbols-outlined {
-  color: #ff716c;
-}
-
-.metric-change {
-  font-size: 8px;
-  font-weight: medium;
-  color: #adaaaa;
-}
-
-.metric-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
-  font-weight: bold;
-  color: #ffffff;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.metric-label {
-  font-size: 12px;
-  font-weight: medium;
-  letter-spacing: 0.5px;
-  color: #adaaaa;
-  margin-bottom: 6px;
-}
-
-.metric-progress {
-  width: 70%;
-  height: 2px;
-  background-color: #262626;
-  border-radius: 1px;
-  overflow: hidden;
-  position: relative;
+.minutes-ring {
+  width: 184rpx;
+  height: 184rpx;
   margin: 0 auto;
+  padding: 12rpx;
+  border-radius: 50%;
 }
-.metric-progress-bar {
+
+.minutes-ring-core {
+  width: 100%;
   height: 100%;
-  border-radius: 2px;
-}
-
-.metric-progress-bar.primary {
-  background-color: #8eabff;
-  box-shadow: 0 0 8px rgba(142, 171, 255, 0.4);
-}
-
-.metric-progress-bar.error {
-  background-color: #ff716c;
-}
-
-.metric-bars {
+  border-radius: 50%;
+  background: var(--surface-strong);
   display: flex;
-  gap: 4px;
-  height: 16px;
-  align-items: flex-end;
-}
-
-.metric-bar {
-  flex: 1;
-  background-color: rgba(160, 255, 240, 0.2);
-  border-radius: 2px 2px 0 0;
-}
-
-.metric-bar.tertiary {
-  background-color: #a0fff0;
-}
-
-.heart-rate-bars {
-  display: flex;
-  gap: 2px;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
-.heart-rate-bar {
-  width: 4px;
-  border-radius: 2px;
-  background-color: rgba(188, 135, 254, 0.4);
+.minutes-value {
+  font-size: 56rpx;
+  font-weight: 700;
 }
 
-.heart-rate-bar:nth-child(1) {
-  height: 12px;
+.minutes-unit {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--text-secondary);
 }
 
-.heart-rate-bar:nth-child(2) {
-  height: 20px;
-  background-color: #bc87fe;
-}
-
-.heart-rate-bar:nth-child(3) {
-  height: 8px;
-}
-
-.metric-unit {
-  font-size: 10px;
-  font-weight: medium;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #bc87fe;
-}
-
-/* 挑战区域 */
-.challenges-section {
-  margin-bottom: 40px;
-}
-
-.challenges-header {
+.section-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: nowrap;
+  align-items: flex-end;
+  margin-bottom: 18rpx;
 }
 
-.challenges-header-left {
-  flex: 1;
-  max-width: calc(100% - 100px);
+.section-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 48rpx;
+  font-weight: 700;
 }
 
-.challenges-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 4px;
+.section-link {
+  font-size: 24rpx;
+  color: var(--brand);
 }
 
-.challenges-subtitle {
-  font-size: 14px;
-  color: #adaaaa;
+.challenge-scroll {
+  margin-bottom: 28rpx;
 }
 
-.view-all-btn {
-  background: none;
-  border: none;
-  color: #8eabff;
-  font-size: 14px;
-  font-weight: bold;
+.challenge-row {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-  transition: opacity 0.3s ease;
-}
-
-.view-all-btn:hover {
-  opacity: 0.8;
-}
-
-.view-all-btn .material-symbols-outlined {
-  font-size: 14px;
-}
-
-.challenges-scroll {
-  display: flex;
-  gap: 24px;
-  overflow-x: auto;
-  padding-bottom: 16px;
+  gap: 20rpx;
+  padding-right: 30rpx;
 }
 
 .challenge-card {
-  min-width: 280px;
-  cursor: pointer;
-}
-
-.challenge-image-container {
   position: relative;
-  aspect-ratio: 4/5;
-  border-radius: 20px;
+  width: 520rpx;
+  height: 700rpx;
+  flex-shrink: 0;
+  border-radius: 36rpx;
   overflow: hidden;
-  margin-bottom: 16px;
+  box-shadow: var(--shadow);
 }
 
-.challenge-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.7s ease;
-}
-
-.challenge-card:hover .challenge-image {
-  transform: scale(1.1);
-}
-
-.challenge-gradient {
+.challenge-image,
+.challenge-mask {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent, transparent);
+  width: 100%;
+  height: 100%;
+}
+
+.challenge-mask {
+  background: linear-gradient(180deg, transparent 25%, rgba(8, 10, 18, 0.18) 50%, rgba(8, 10, 18, 0.82) 100%);
 }
 
 .challenge-content {
   position: absolute;
-  bottom: 24px;
-  left: 24px;
-  right: 24px;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 30rpx;
+  color: #ffffff;
 }
 
-.challenge-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 10px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-}
-
-.challenge-badge.primary {
-  background-color: #8eabff;
-  color: #002971;
-}
-
-.challenge-badge.tertiary {
-  background-color: #a0fff0;
-  color: #00645a;
+.challenge-tag {
+  display: inline-flex;
+  margin-bottom: 14rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16rpx);
+  font-size: 22rpx;
 }
 
 .challenge-title {
-  font-size: 20px;
-  font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 8px;
+  display: block;
+  font-size: 44rpx;
+  line-height: 1.16;
+  font-weight: 700;
 }
 
 .challenge-meta {
-  display: flex;
-  gap: 12px;
+  display: block;
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.82);
 }
 
-.challenge-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+.analysis-card {
+  padding: 30rpx;
+  border-radius: 34rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
 }
 
-.challenge-meta-item .material-symbols-outlined {
-  font-size: 14px;
+.analysis-title {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 42rpx;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-/* AI 分析 */
-.ai-analysis {
-  position: relative;
-  padding: 32px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  overflow: hidden;
+.analysis-text {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.68;
+  color: var(--text-secondary);
 }
 
-.ai-analysis-bg {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 256px;
-  height: 256px;
-  background-color: rgba(188, 135, 254, 0.1);
-  filter: blur(80px);
-  border-radius: 50%;
-  transform: translate(50%, -50%);
+.analysis-matrix {
+  margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
 }
 
-.ai-analysis-content {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
+.matrix-item {
+  padding: 22rpx 18rpx;
+  border-radius: 24rpx;
+  background: var(--surface-strong);
+  border: 1rpx solid var(--border);
 }
 
-@media (min-width: 768px) {
-  .ai-analysis-content {
-    flex-direction: row;
-    align-items: center;
-  }
-}
-
-.ai-analysis-text {
-  flex: 1;
-}
-
-.ai-analysis-title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  white-space: nowrap;
-}
-
-.ai-analysis-description {
-  font-size: 16px;
-  color: #adaaaa;
-  margin-bottom: 24px;
-}
-
-.ai-analysis-btn {
-  padding: 12px 32px;
-  background: linear-gradient(90deg, #8eabff, #156aff);
-  color: #002971;
-  font-weight: bold;
-  border-radius: 9999px;
-  box-shadow: 0 4px 20px rgba(21, 106, 255, 0.3);
-  transition: transform 0.3s ease;
-}
-
-.ai-analysis-btn:hover {
-  transform: scale(1.05);
-}
-
-.ai-analysis-btn:active {
-  transform: scale(0.95);
-}
-
-.ai-analysis-chart {
-  width: 100%;
-  max-width: 300px;
-  aspect-ratio: 1;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 24px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chart-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chart-svg {
-  width: 100%;
-  height: 100%;
+.matrix-label,
+.matrix-value {
   display: block;
 }
 
-.chart-polygon {
-  fill: rgba(142, 171, 255, 0.1);
-  stroke: rgba(142, 171, 255, 0.6);
-  stroke-width: 1;
+.matrix-label {
+  font-size: 20rpx;
+  color: var(--text-muted);
 }
 
-.chart-center {
-  fill: #8eabff;
-  stroke: #8eabff;
-  stroke-width: 1;
+.matrix-value {
+  margin-top: 10rpx;
+  font-size: 28rpx;
+  font-weight: 700;
 }
 
-.chart-label {
-  position: absolute;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 12px;
-  font-weight: bold;
-  color: #adaaaa;
+.readiness-card {
+  margin-bottom: 30rpx;
+  padding: 30rpx;
+  border-radius: 34rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow);
 }
 
-.chart-label.top {
-  top: 16px;
+.readiness-head {
+  margin-bottom: 0;
+  align-items: flex-start;
 }
 
-.chart-label.right {
-  right: 16px;
-  top: 33%;
-}
-
-.chart-label.bottom-right {
-  bottom: 16px;
-  right: 25%;
-}
-
-.chart-label.bottom-left {
-  bottom: 16px;
-  left: 25%;
-}
-
-.chart-label.left {
-  left: 16px;
-  top: 33%;
-}
-
-/* 浮动操作按钮 */
-.fab {
-  position: fixed;
-  bottom: 100px;
-  right: 30px;
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, #8eabff, #bc87fe);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 30px rgba(188, 135, 254, 0.4);
-  z-index: 40;
-  transition: transform 0.3s ease;
-}
-
-.fab:hover {
-  transform: scale(1.1);
-}
-
-.fab:active {
-  transform: scale(0.95);
-}
-
-.fab .material-symbols-outlined {
-  font-size: 32px;
-  color: #002971;
-}
-
-/* 底部导航 */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 12px 20px;
-  background: rgba(14, 14, 14, 0.8);
-  backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 50;
-}
-
-.nav-item {
+.readiness-status {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 8px 20px;
-  transition: all 0.3s ease;
+  align-items: flex-end;
 }
 
-.nav-item.active {
-  background-color: rgba(142, 171, 255, 0.1);
-  border-radius: 9999px;
-  color: #8eabff;
+.readiness-status-label,
+.readiness-status-value,
+.readiness-text,
+.readiness-range-label,
+.readiness-footline,
+.readiness-caption {
+  display: block;
 }
 
-.nav-item:not(.active) {
-  color: #565555;
+.readiness-status-label,
+.readiness-caption {
+  font-size: 22rpx;
+  color: var(--text-muted);
 }
 
-.nav-item:hover:not(.active) {
-  color: #bc87fe;
+.readiness-status-value {
+  margin-top: 8rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--brand);
 }
 
-.nav-item .material-symbols-outlined {
-  font-size: 24px;
-  margin-bottom: 4px;
+.readiness-text {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.66;
+  color: var(--text-secondary);
 }
 
-.nav-item.active .material-symbols-outlined {
-  font-variation-settings: 'FILL' 1;
+.readiness-range {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20rpx;
 }
 
-.nav-label {
-  font-size: 11px;
-  font-weight: medium;
-  letter-spacing: 1px;
+.readiness-range-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
 }
 
-/* 玻璃面板样式 */
-.glass-panel {
-  background: rgba(38, 38, 38, 0.4);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(142, 171, 255, 0.1);
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 16rpx;
 }
 
-/* 滚动条隐藏 */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+.readiness-chip {
+  min-height: 72rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.readiness-chip::after {
+  border: none;
+}
+
+.readiness-chip.active {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accentWarm) 100%);
+  color: #ffffff;
+}
+
+.readiness-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-top: 18rpx;
+}
+
+.readiness-footline {
+  font-size: 24rpx;
+  color: var(--text);
+}
+
+.readiness-caption {
+  margin-top: 12rpx;
 }
 </style>

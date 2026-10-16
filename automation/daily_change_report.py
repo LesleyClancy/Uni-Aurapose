@@ -64,7 +64,7 @@ def resolve_window(
 ) -> Tuple[dt.datetime, dt.datetime]:
     if since or until:
         if not (since and until):
-            raise ValueError("Both --since and --until must be provided together.")
+            raise ValueError("使用 --since 和 --until 时，必须同时提供这两个参数。")
         return (
             dt.datetime.fromisoformat(since).astimezone(),
             dt.datetime.fromisoformat(until).astimezone(),
@@ -190,41 +190,41 @@ def build_report(
     lines = [
         report_name,
         "",
-        f"Repository: {repo_name}",
-        f"Folder: {repo_root}",
-        f"Machine: {host}",
-        f"Window start: {window_start.isoformat()}",
-        f"Window end:   {window_end.isoformat()}",
-        f"Commit count: {len(commits)}",
-        f"Files changed: {total_files}",
-        f"Insertions: {total_insertions}",
-        f"Deletions: {total_deletions}",
+        f"仓库：{repo_name}",
+        f"目录：{repo_root}",
+        f"机器：{host}",
+        f"统计开始：{window_start.isoformat()}",
+        f"统计结束：{window_end.isoformat()}",
+        f"提交数：{len(commits)}",
+        f"文件变更数：{total_files}",
+        f"新增行数：{total_insertions}",
+        f"删除行数：{total_deletions}",
         "",
     ]
 
     if not commits:
-        lines.append("No Git commits were detected in this window.")
+        lines.append("该时间窗口内没有检测到 Git 提交。")
         return "\n".join(lines) + "\n"
 
-    lines.append("Commits")
+    lines.append("提交明细")
     for index, commit in enumerate(commits[:max_items], start=1):
         lines.append(
             f"{index}. {commit['short_hash']} | {commit['author']} | {commit['date']} | {commit['subject']}"
         )
         lines.append(
-            f"   files={len(commit['files'])}, +{commit['insertions']}, -{commit['deletions']}"
+            f"   文件数={len(commit['files'])}，+{commit['insertions']}，-{commit['deletions']}"
         )
 
     hidden_commits = max(0, len(commits) - max_items)
     if hidden_commits:
-        lines.append(f"... and {hidden_commits} more commits")
+        lines.append(f"... 另有 {hidden_commits} 个提交未展示")
 
     lines.append("")
-    lines.append("Top changed files")
+    lines.append("重点变更文件")
     for path, item in get_top_files(commits, max_items):
-        binary_tag = " | binary" if item["binary"] else ""
+        binary_tag = " | 二进制文件" if item["binary"] else ""
         lines.append(
-            f"- {path} | touched {item['touches']} time(s) | +{item['insertions']} -{item['deletions']}{binary_tag}"
+            f"- {path} | 修改次数 {item['touches']} | +{item['insertions']} -{item['deletions']}{binary_tag}"
         )
 
     return "\n".join(lines) + "\n"
@@ -259,19 +259,19 @@ def send_email(subject: str, body: str, smtp_config: Dict[str, str]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Create a Git-based change report for the repo and send it by email."
+        description="为仓库生成 Git 变更日报，并通过邮件发送。"
     )
-    parser.add_argument("--root", default=".", help="Repository folder to scan.")
-    parser.add_argument("--recipient", default="", help="Email recipient override.")
-    parser.add_argument("--env-file", default=str(DEFAULT_ENV_PATH), help="Path to the report env file.")
-    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR), help="Directory used to store generated reports.")
-    parser.add_argument("--report-name", default="Daily Git Change Report", help="Report title.")
-    parser.add_argument("--max-items", type=int, default=50, help="Max entries shown in each report section.")
-    parser.add_argument("--scheduled-hour", type=int, default=10, help="Hour used for the daily report window.")
-    parser.add_argument("--day-offset", type=int, default=0, help="0=latest completed window, 1=previous window.")
-    parser.add_argument("--since", default="", help="Explicit ISO datetime start.")
-    parser.add_argument("--until", default="", help="Explicit ISO datetime end.")
-    parser.add_argument("--print-only", action="store_true", help="Generate the report without sending email.")
+    parser.add_argument("--root", default=".", help="要扫描的仓库目录。")
+    parser.add_argument("--recipient", default="", help="覆盖默认收件人邮箱。")
+    parser.add_argument("--env-file", default=str(DEFAULT_ENV_PATH), help="日报配置 env 文件路径。")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR), help="生成报告的本地存储目录。")
+    parser.add_argument("--report-name", default="Git 每日报告", help="报告标题。")
+    parser.add_argument("--max-items", type=int, default=50, help="每个报告章节最多展示的条目数。")
+    parser.add_argument("--scheduled-hour", type=int, default=10, help="日报统计窗口的截止小时。")
+    parser.add_argument("--day-offset", type=int, default=0, help="0=最近一个完整窗口，1=再往前一个窗口。")
+    parser.add_argument("--since", default="", help="显式指定 ISO 格式开始时间。")
+    parser.add_argument("--until", default="", help="显式指定 ISO 格式结束时间。")
+    parser.add_argument("--print-only", action="store_true", help="只生成报告，不发送邮件。")
     return parser.parse_args()
 
 
@@ -304,7 +304,7 @@ def main() -> int:
     try:
         ensure_git_repo(repo_root)
     except RuntimeError as exc:
-        print(f"Current folder is not a Git repository: {exc}", file=sys.stderr)
+        print(f"当前目录不是 Git 仓库：{exc}", file=sys.stderr)
         return 4
 
     now = dt.datetime.now().astimezone()
@@ -335,30 +335,30 @@ def main() -> int:
 
     if args.print_only:
         print(report_body)
-        print(f"Saved local copy at {report_file}.")
+        print(f"本地报告已保存到：{report_file}")
         return 0
 
     if not smtp_config["to_addr"]:
-        print("Recipient email is missing. Set REPORT_SMTP_TO or use --recipient.", file=sys.stderr)
+        print("缺少收件人邮箱。请设置 REPORT_SMTP_TO 或使用 --recipient。", file=sys.stderr)
         return 2
     if not smtp_config["username"] or not smtp_config["password"] or not smtp_config["from_addr"]:
         print(
-            "SMTP settings are incomplete. Please set REPORT_SMTP_USER, REPORT_SMTP_PASSWORD, and REPORT_SMTP_FROM.",
+            "SMTP 配置不完整。请设置 REPORT_SMTP_USER、REPORT_SMTP_PASSWORD 和 REPORT_SMTP_FROM。",
             file=sys.stderr,
         )
         return 3
 
-    subject_prefix = get_env("REPORT_SUBJECT_PREFIX", "[Git Change Report]")
+    subject_prefix = get_env("REPORT_SUBJECT_PREFIX", "[ProfitAI Git 每日报告]")
     subject = f"{subject_prefix} {window_start.isoformat()} -> {window_end.isoformat()}"
 
     try:
         send_email(subject, report_body, smtp_config)
     except Exception as exc:  # pragma: no cover
-        print(f"Failed to send email: {exc}", file=sys.stderr)
+        print(f"邮件发送失败：{exc}", file=sys.stderr)
         return 6
 
-    print(f"Report sent successfully to {smtp_config['to_addr']}.")
-    print(f"Saved local copy at {report_file}.")
+    print(f"报告已成功发送至 {smtp_config['to_addr']}。")
+    print(f"本地报告已保存到：{report_file}")
     return 0
 
 

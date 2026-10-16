@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS training_sessions (
   total_calories DECIMAL(8,2) NOT NULL DEFAULT 0,
   best_accuracy DECIMAL(5,2) NOT NULL DEFAULT 0,
   avg_accuracy DECIMAL(5,2) NOT NULL DEFAULT 0,
+  session_rpe TINYINT UNSIGNED NULL DEFAULT NULL,
   CONSTRAINT fk_training_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_training_sessions_module FOREIGN KEY (module_id) REFERENCES training_modules(id) ON DELETE SET NULL,
   INDEX idx_training_sessions_user_time (user_id, started_at)
@@ -108,6 +109,32 @@ CREATE TABLE IF NOT EXISTS training_records (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_training_records_session FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE,
   INDEX idx_training_records_session_time (session_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS training_reports (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  session_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  summary JSON NOT NULL,
+  insights JSON NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_training_reports_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_training_reports_session FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_training_reports_session (session_id),
+  INDEX idx_training_reports_user_time (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS recovery_checkins (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  recorded_on DATE NOT NULL,
+  prs_score TINYINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_recovery_checkins_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_recovery_checkins_user_day (user_id, recorded_on),
+  INDEX idx_recovery_checkins_user_time (user_id, recorded_on)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS achievements (
