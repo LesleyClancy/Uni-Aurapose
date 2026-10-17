@@ -128,3 +128,17 @@ export function finishTrainingSession(sessionId, payload = {}) {
     data: payload
   })
 }
+
+// 离线训练本地存档：会话创建/结束失败时留存训练摘要，避免数据丢失
+export const PENDING_SESSIONS_STORAGE_KEY = 'profitai_pending_sessions'
+
+export function savePendingSession(summary) {
+  const list = uni.getStorageSync(PENDING_SESSIONS_STORAGE_KEY) || []
+  list.push(summary)
+  uni.setStorageSync(PENDING_SESSIONS_STORAGE_KEY, list)
+  return list.length
+}
+
+export function getPendingSessions() {
+  return uni.getStorageSync(PENDING_SESSIONS_STORAGE_KEY) || []
+}

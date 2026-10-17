@@ -26,7 +26,7 @@
         <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           @initdone="cameraInitDone"
           @error="cameraError"
@@ -37,7 +37,7 @@
           id="pusher"
           class="camera-source"
           mode="HD"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           :autopush="false"
           :muted="true"
@@ -63,8 +63,10 @@
         <view class="preview-badge">
           <text>{{ fps }} FPS</text>
         </view>
+        <button class="camera-switch" @click="switchCamera">{{ copy.switchCamera }}</button>
         <view v-if="!cameraReady || modelPreparing" class="placeholder">
-          <text class="placeholder-title">{{ modelPreparing ? copy.modelLoading : copy.waitingCamera }}</text>
+          <text class="placeholder-title">{{ placeholderTitle }}</text>
+          <button v-if="detectorFailed" class="placeholder-retry" @click="retryDetectorInit">{{ copy.modelRetry }}</button>
         </view>
       </view>
     </view>
@@ -74,7 +76,7 @@
         <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           @initdone="cameraInitDone"
           @error="cameraError"
@@ -85,7 +87,7 @@
           id="pusher"
           class="camera-source"
           mode="HD"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           :autopush="false"
           :muted="true"
@@ -108,8 +110,10 @@
             :style="point.style"
           />
         </cover-view>
+        <button class="camera-switch" @click="switchCamera">{{ copy.switchCamera }}</button>
         <view v-if="!cameraReady || modelPreparing" class="placeholder">
-          <text class="placeholder-title">{{ modelPreparing ? copy.modelLoading : copy.waitingCamera }}</text>
+          <text class="placeholder-title">{{ placeholderTitle }}</text>
+          <button v-if="detectorFailed" class="placeholder-retry" @click="retryDetectorInit">{{ copy.modelRetry }}</button>
         </view>
 
         <view class="panorama-overlay top">
@@ -231,7 +235,7 @@
 </template>
 
 <script>
-import { createTrainingSession, finishTrainingSession, getApiBaseUrl, getDetectMode, getOpenid } from '../../common/api.js'
+import { createTrainingSession, finishTrainingSession, getApiBaseUrl, getDetectMode, getOpenid, savePendingSession } from '../../common/api.js'
 import {
   applyNativeTheme,
   getThemeClass,
@@ -285,11 +289,13 @@ export default {
       showFinishSheet: false,
       finishing: false,
       detectMode: getDetectMode(),
+      cameraPosition: 'front',
       framePayload: null,
       commandPayload: null,
       frameSeq: 0,
       commandSeq: 0,
       detectorReady: false,
+      detectorFailed: false,
       offlineMode: false
     }
   },
@@ -358,6 +364,12 @@ export default {
       // #ifndef APP-PLUS
       return false
       // #endif
+    },
+    placeholderTitle() {
+      if (this.detectorFailed) {
+        return this.copy.modelLoadFailed
+      }
+      return this.modelPreparing ? this.copy.modelLoading : this.copy.waitingCamera
     }
   },
   onReady() {
@@ -489,18 +501,30 @@ export default {
         return
       }
       this.finishing = true
-      if (this.sessionId && this.startTime) {
-        const durationSeconds = Math.floor((new Date() - this.startTime) / 1000)
+      const durationSeconds = this.startTime ? Math.floor((new Date() - this.startTime) / 1000) : 0
+      let synced = false
+      if (this.sessionId && durationSeconds > 0) {
         try {
           await finishTrainingSession(this.sessionId, {
             duration_seconds: durationSeconds,
             session_rpe: sessionRpe
           })
+          synced = true
         } catch (err) {
-          // 离线容错：同步失败不阻塞结束训练
-          uni.showToast({ title: this.copy.offlineFinishNote, icon: 'none' })
+          // 离线容错：同步失败转为本地存档
         }
-      } else {
+      }
+      if (!synced) {
+        // 离线训练本地存档：留存训练摘要，避免数据丢失
+        savePendingSession({
+          finished_at: new Date().toISOString(),
+          duration_seconds: durationSeconds,
+          session_rpe: sessionRpe,
+          total_reps: Number(this.totalReps) || 0,
+          total_calories: Number(this.calories) || 0,
+          counts: this.counts || {},
+          calories_by_exercise: this.caloriesByExercise || {}
+        })
         uni.showToast({ title: this.copy.offlineFinishNote, icon: 'none' })
       }
       this.showFinishSheet = false
@@ -686,15 +710,31 @@ export default {
     onDetectorStatus(payload) {
       if (payload && payload.ready) {
         this.detectorReady = true
+        this.detectorFailed = false
         if (this.isDetecting && !this.sending) {
           this.captureAndDetect()
         }
       } else {
         this.detectorReady = false
+        this.detectorFailed = true
         this.errorText = `${this.copy.modelLoadFailed}: ${(payload && payload.error) || 'unknown error'}`
       }
     },
     // #endif
+    retryDetectorInit() {
+      // #ifdef APP-PLUS
+      this.detectorFailed = false
+      this.commandSeq += 1
+      this.commandPayload = { action: 'init', seq: this.commandSeq }
+      // #endif
+    },
+    switchCamera() {
+      if (!this.cameraReady) {
+        return
+      }
+      this.cameraReady = false
+      this.cameraPosition = this.cameraPosition === 'front' ? 'back' : 'front'
+    },
     onDetectResult(result) {
       this.sending = false
       if (result && !result.error) {
@@ -879,6 +919,7 @@ export default {
     this.ort = null
     this.session = null
     this.ready = false
+    this.initializing = false
     this.classification = null
     this.lastClassifyAt = 0
     this.frameTimes = []
@@ -890,6 +931,11 @@ export default {
       if (!/^file:/i.test(window.location.protocol)) {
         return
       }
+      // 防止 mounted 与重试命令并发重复初始化
+      if (this.initializing || this.ready) {
+        return
+      }
+      this.initializing = true
       const report = (ownerInstance, payload) => {
         ownerInstance && ownerInstance.callMethod('onDetectorStatus', payload)
       }
@@ -956,14 +1002,23 @@ export default {
         this.pose = pose
         this.engine = engine
         this.ready = true
+        // 模型已全部解码驻留，释放 base64 源字符串（约 60MB 字符串内存），降低 WebView 内存峰值
+        window.__AI_ASSETS = null
+        window.__AI_SCALER = null
         report(this.$ownerInstance || owner, { ready: true })
       } catch (e) {
         this.ready = false
         report(this.$ownerInstance || owner, { ready: false, error: String((e && e.message) || e) })
+      } finally {
+        this.initializing = false
       }
     },
     onCommand(payload) {
       if (!payload || !this.engine) {
+        // 初始化失败后 engine 尚未创建，重试命令仍需放行
+        if (payload && payload.action === 'init') {
+          this.init()
+        }
         return
       }
       if (payload.action === 'reset') {
@@ -1205,14 +1260,40 @@ export default {
 .placeholder {
   z-index: 2;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20rpx;
   background: rgba(2, 6, 23, 0.45);
 }
 
 .placeholder-title {
   font-size: 32rpx;
   color: #ffffff;
+}
+
+.placeholder-retry {
+  padding: 14rpx 36rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.35);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.camera-switch {
+  position: absolute;
+  left: 20rpx;
+  bottom: 20rpx;
+  z-index: 3;
+  padding: 10rpx 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 999rpx;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 1.4;
 }
 
 .detector-host {
