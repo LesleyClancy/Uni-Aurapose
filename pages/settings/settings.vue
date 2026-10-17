@@ -39,6 +39,20 @@
 
     <!-- #ifdef APP-PLUS -->
     <view class="setting-card">
+      <text class="card-title">{{ copy.detectModeTitle }}</text>
+      <view class="option-grid">
+        <button
+          v-for="item in detectModeOptions"
+          :key="item.value"
+          :class="['option-btn', { active: detectMode === item.value }]"
+          @click="handleDetectModeChange(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </view>
+      <text class="server-hint">{{ copy.detectModeHint }}</text>
+    </view>
+    <view class="setting-card">
       <text class="card-title">{{ copy.serverTitle }}</text>
       <input
         class="server-input"
@@ -67,7 +81,7 @@ import {
   getLocale,
   setLocale
 } from '../../common/i18n.js'
-import { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from '../../common/api.js'
+import { DEFAULT_API_BASE_URL, getApiBaseUrl, getDetectMode, setApiBaseUrl, setDetectMode } from '../../common/api.js'
 
 export default {
   data() {
@@ -75,7 +89,8 @@ export default {
       themeMode: getThemeMode(),
       locale: getLocale(),
       serverUrl: getApiBaseUrl(),
-      defaultApiBaseUrl: DEFAULT_API_BASE_URL
+      defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+      detectMode: getDetectMode()
     }
   },
   computed: {
@@ -98,6 +113,12 @@ export default {
       return [
         { label: this.copy.languageZh, value: 'zh' },
         { label: this.copy.languageEn, value: 'en' }
+      ]
+    },
+    detectModeOptions() {
+      return [
+        { label: this.copy.detectModeLocal, value: 'local' },
+        { label: this.copy.detectModeServer, value: 'server' }
       ]
     }
   },
@@ -130,6 +151,13 @@ export default {
       this.serverUrl = setApiBaseUrl(this.serverUrl)
       uni.showToast({
         title: this.copy.serverSaved,
+        icon: 'none'
+      })
+    },
+    handleDetectModeChange(mode) {
+      this.detectMode = setDetectMode(mode)
+      uni.showToast({
+        title: this.copy.detectModeSaved,
         icon: 'none'
       })
     }

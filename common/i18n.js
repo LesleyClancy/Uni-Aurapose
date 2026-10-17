@@ -182,7 +182,12 @@ const messages = {
       serverTitle: '服务器地址',
       serverHint: '后端接口地址，留空恢复默认。',
       serverSave: '保存地址',
-      serverSaved: '服务器地址已更新'
+      serverSaved: '服务器地址已更新',
+      detectModeTitle: '识别模式',
+      detectModeLocal: '端侧识别（离线）',
+      detectModeServer: '服务器识别',
+      detectModeHint: '端侧识别在手机本地运行 AI 模型，无需服务器即可训练；服务器识别需填写上方地址。',
+      detectModeSaved: '识别模式已更新'
     },
     groups: {
       heroKicker: '社交训练',
@@ -266,6 +271,10 @@ const messages = {
       trainingTime: '训练时长',
       movementSummary: '动作统计',
       skeletonLocal: '骨架线本地绘制',
+      modelLoading: 'AI 模型加载中…',
+      modelLoadFailed: 'AI 模型加载失败',
+      offlineTraining: '离线训练中，数据暂存本地',
+      offlineFinishNote: '离线模式：本次训练记录未同步',
       resetCounters: '重置计数',
       notDetected: '未检测到',
       repsUnit: '次',
@@ -492,7 +501,12 @@ const messages = {
       serverTitle: 'Server address',
       serverHint: 'Backend API base URL. Leave empty to reset to default.',
       serverSave: 'Save address',
-      serverSaved: 'Server address updated'
+      serverSaved: 'Server address updated',
+      detectModeTitle: 'Detection mode',
+      detectModeLocal: 'On-device (offline)',
+      detectModeServer: 'Server',
+      detectModeHint: 'On-device mode runs the AI model locally on your phone; server mode requires the address above.',
+      detectModeSaved: 'Detection mode updated'
     },
     groups: {
       heroKicker: 'Social workout',
@@ -576,6 +590,10 @@ const messages = {
       trainingTime: 'Training time',
       movementSummary: 'Movement summary',
       skeletonLocal: 'Skeleton drawn locally',
+      modelLoading: 'Loading AI model…',
+      modelLoadFailed: 'Failed to load AI model',
+      offlineTraining: 'Offline training, data stored locally',
+      offlineFinishNote: 'Offline mode: this session was not synced',
       resetCounters: 'Reset counters',
       notDetected: 'Not detected',
       repsUnit: 'reps',

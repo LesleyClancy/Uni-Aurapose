@@ -3,6 +3,7 @@
 export const DEFAULT_API_BASE_URL = 'http://10.190.232.61:5000'
 export const API_BASE_URL_STORAGE_KEY = 'profitai_api_base_url'
 export const DEFAULT_OPENID = 'dev-openid'
+export const DETECT_MODE_STORAGE_KEY = 'profitai_detect_mode'
 
 export function getApiBaseUrl() {
   const saved = uni.getStorageSync(API_BASE_URL_STORAGE_KEY)
@@ -24,6 +25,29 @@ export function setApiBaseUrl(url) {
 
 export function getOpenid() {
   return uni.getStorageSync('profitai_openid') || DEFAULT_OPENID
+}
+
+// 识别模式：App 端默认 local（端侧 AI，离线可用），其余平台默认 server
+export function getDetectMode() {
+  const saved = uni.getStorageSync(DETECT_MODE_STORAGE_KEY)
+  if (saved === 'local' || saved === 'server') {
+    return saved
+  }
+  // #ifdef APP-PLUS
+  return 'local'
+  // #endif
+  // #ifndef APP-PLUS
+  return 'server'
+  // #endif
+}
+
+export function setDetectMode(mode) {
+  if (mode === 'local' || mode === 'server') {
+    uni.setStorageSync(DETECT_MODE_STORAGE_KEY, mode)
+  } else {
+    uni.removeStorageSync(DETECT_MODE_STORAGE_KEY)
+  }
+  return getDetectMode()
 }
 
 export function setOpenid(openid) {
