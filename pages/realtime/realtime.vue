@@ -13,19 +13,39 @@
         </view>
       </view>
 
+      <view v-if="offlineMode" class="offline-banner">
+        <text class="offline-text">{{ copy.offlineTraining }}</text>
+      </view>
+
       <view class="mode-switch">
         <button :class="['mode-btn', { active: viewMode === 'training' }]" @click="setViewMode('training')">{{ copy.trainingMode }}</button>
         <button :class="['mode-btn', { active: viewMode === 'panorama' }]" @click="setViewMode('panorama')">{{ copy.panoramaMode }}</button>
       </view>
 
       <view class="preview-shell training-preview" id="previewShell">
+        <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           @initdone="cameraInitDone"
           @error="cameraError"
         />
+        <!-- #endif -->
+        <!-- #ifdef APP-PLUS -->
+        <live-pusher
+          id="pusher"
+          class="camera-source"
+          mode="HD"
+          :device-position="cameraPosition"
+          flash="off"
+          :autopush="false"
+          :muted="true"
+          :enable-camera="true"
+          @statechange="pusherStateChange"
+          @error="cameraError"
+        />
+        <!-- #endif -->
         <cover-view class="skeleton-overlay">
           <cover-view
             v-for="(line, index) in skeletonLines"
@@ -43,21 +63,39 @@
         <view class="preview-badge">
           <text>{{ fps }} FPS</text>
         </view>
-        <view v-if="!cameraReady" class="placeholder">
-          <text class="placeholder-title">{{ copy.waitingCamera }}</text>
+        <button class="camera-switch" @click="switchCamera">{{ copy.switchCamera }}</button>
+        <view v-if="!cameraReady || modelPreparing" class="placeholder">
+          <text class="placeholder-title">{{ placeholderTitle }}</text>
+          <button v-if="detectorFailed" class="placeholder-retry" @click="retryDetectorInit">{{ copy.modelRetry }}</button>
         </view>
       </view>
     </view>
 
     <view v-else class="panorama-shell">
       <view class="preview-shell panorama-preview" id="previewShell">
+        <!-- #ifdef MP-WEIXIN -->
         <camera
           class="camera-source"
-          device-position="front"
+          :device-position="cameraPosition"
           flash="off"
           @initdone="cameraInitDone"
           @error="cameraError"
         />
+        <!-- #endif -->
+        <!-- #ifdef APP-PLUS -->
+        <live-pusher
+          id="pusher"
+          class="camera-source"
+          mode="HD"
+          :device-position="cameraPosition"
+          flash="off"
+          :autopush="false"
+          :muted="true"
+          :enable-camera="true"
+          @statechange="pusherStateChange"
+          @error="cameraError"
+        />
+        <!-- #endif -->
         <cover-view class="skeleton-overlay">
           <cover-view
             v-for="(line, index) in skeletonLines"
@@ -72,8 +110,10 @@
             :style="point.style"
           />
         </cover-view>
-        <view v-if="!cameraReady" class="placeholder">
-          <text class="placeholder-title">{{ copy.waitingCamera }}</text>
+        <button class="camera-switch" @click="switchCamera">{{ copy.switchCamera }}</button>
+        <view v-if="!cameraReady || modelPreparing" class="placeholder">
+          <text class="placeholder-title">{{ placeholderTitle }}</text>
+          <button v-if="detectorFailed" class="placeholder-retry" @click="retryDetectorInit">{{ copy.modelRetry }}</button>
         </view>
 
         <view class="panorama-overlay top">
@@ -93,14 +133,18 @@
         </view>
 
         <view class="panorama-overlay bottom">
+          <!-- #ifdef MP-WEIXIN -->
           <view class="record-panel">
             <text class="record-title">{{ copy.panoramaRecording }}</text>
             <text class="record-subtitle">{{ isRecording ? copy.panoramaRecordingOn : copy.panoramaRecordingOff }}</text>
           </view>
+          <!-- #endif -->
           <view class="panorama-actions">
+            <!-- #ifdef MP-WEIXIN -->
             <button class="ghost-btn" @click="toggleRecording">
               {{ isRecording ? copy.stopRecording : copy.startRecording }}
             </button>
+            <!-- #endif -->
             <button class="danger-btn" @click="requestFinish">{{ copy.endWorkout }}</button>
           </view>
         </view>
@@ -177,11 +221,21 @@
     </view>
 
     <text v-if="errorText" class="error-text">{{ errorText }}</text>
+
+    <!-- #ifdef APP-PLUS -->
+    <view
+      class="detector-host"
+      :frame="framePayload"
+      :change:frame="detector.onFrame"
+      :command="commandPayload"
+      :change:command="detector.onCommand"
+    ></view>
+    <!-- #endif -->
   </view>
 </template>
 
 <script>
-import { API_BASE_URL, createTrainingSession, finishTrainingSession, getOpenid } from '../../common/api.js'
+import { createTrainingSession, finishTrainingSession, getApiBaseUrl, getDetectMode, getOpenid, savePendingSession } from '../../common/api.js'
 import {
   applyNativeTheme,
   getThemeClass,
@@ -190,8 +244,6 @@ import {
 } from '../../common/theme.js'
 import { applyPageLocale, getCopy, getLocale } from '../../common/i18n.js'
 
-const SERVER_BASE_URL = API_BASE_URL
-const REALTIME_API_URL = `${SERVER_BASE_URL}/api/realtime_frame`
 const REQUEST_TIMEOUT = 120000
 
 const CONNECTIONS = [
@@ -235,7 +287,16 @@ export default {
       lastRecordedPath: '',
       defaultNotDetected: copy.notDetected,
       showFinishSheet: false,
-      finishing: false
+      finishing: false,
+      detectMode: getDetectMode(),
+      cameraPosition: 'front',
+      framePayload: null,
+      commandPayload: null,
+      frameSeq: 0,
+      commandSeq: 0,
+      detectorReady: false,
+      detectorFailed: false,
+      offlineMode: false
     }
   },
   computed: {
@@ -295,15 +356,39 @@ export default {
           style: `left:${x}px;top:${y}px;`
         }
       }).filter(Boolean)
+    },
+    modelPreparing() {
+      // #ifdef APP-PLUS
+      return this.detectMode === 'local' && !this.detectorReady
+      // #endif
+      // #ifndef APP-PLUS
+      return false
+      // #endif
+    },
+    placeholderTitle() {
+      if (this.detectorFailed) {
+        return this.copy.modelLoadFailed
+      }
+      return this.modelPreparing ? this.copy.modelLoading : this.copy.waitingCamera
     }
   },
   onReady() {
+    // #ifdef MP-WEIXIN
     this.cameraContext = uni.createCameraContext(this)
+    // #endif
+    // #ifdef APP-PLUS
+    this.cameraContext = uni.createLivePusherContext('pusher', this)
+    // #endif
     this.measurePreview()
   },
   async onShow() {
     this.syncTheme()
     this.syncLocale()
+    this.detectMode = getDetectMode()
+    // #ifdef APP-PLUS
+    // 端侧 WASM 推理较慢，适当放慢抓帧节奏避免积压
+    this.requestIntervalMs = this.detectMode === 'local' ? 100 : 50
+    // #endif
     this.startTime = new Date()
     await this.ensureTrainingSession()
     this.startDetection()
@@ -358,6 +443,17 @@ export default {
         icon: 'none'
       })
     },
+    // #ifdef APP-PLUS
+    pusherStateChange(e) {
+      const detail = (e && e.detail) || {}
+      // 负数 code 为 live-pusher 错误码（-1307 摄像头打开失败等）
+      if (detail.code < 0) {
+        this.cameraError({ detail: { errMsg: `live-pusher error code ${detail.code}` } })
+        return
+      }
+      this.cameraInitDone()
+    },
+    // #endif
     startDetection() {
       if (this.detectionTimer) {
         return
@@ -384,7 +480,8 @@ export default {
         const result = await createTrainingSession({})
         this.sessionId = result.session && result.session.id
       } catch (err) {
-        this.errorText = `${this.copy.createSessionFailed}: ${err}`
+        // 离线容错：会话创建失败不阻塞训练，结束时提示未同步
+        this.offlineMode = true
       }
     },
     async requestFinish() {
@@ -404,18 +501,31 @@ export default {
         return
       }
       this.finishing = true
-      if (this.sessionId && this.startTime) {
-        const durationSeconds = Math.floor((new Date() - this.startTime) / 1000)
+      const durationSeconds = this.startTime ? Math.floor((new Date() - this.startTime) / 1000) : 0
+      let synced = false
+      if (this.sessionId && durationSeconds > 0) {
         try {
           await finishTrainingSession(this.sessionId, {
             duration_seconds: durationSeconds,
             session_rpe: sessionRpe
           })
+          synced = true
         } catch (err) {
-          this.errorText = `${this.copy.saveTrainingFailed}: ${err}`
-          this.finishing = false
-          return
+          // 离线容错：同步失败转为本地存档
         }
+      }
+      if (!synced) {
+        // 离线训练本地存档：留存训练摘要，避免数据丢失
+        savePendingSession({
+          finished_at: new Date().toISOString(),
+          duration_seconds: durationSeconds,
+          session_rpe: sessionRpe,
+          total_reps: Number(this.totalReps) || 0,
+          total_calories: Number(this.calories) || 0,
+          counts: this.counts || {},
+          calories_by_exercise: this.caloriesByExercise || {}
+        })
+        uni.showToast({ title: this.copy.offlineFinishNote, icon: 'none' })
       }
       this.showFinishSheet = false
       this.finishing = false
@@ -431,7 +541,35 @@ export default {
         }
         return
       }
+      // #ifdef APP-PLUS
+      if (this.detectMode === 'local') {
+        if (!this.detectorReady) {
+          if (this.isDetecting) {
+            setTimeout(() => this.captureAndDetect(), 300)
+          }
+          return
+        }
+        this.sending = true
+        this.cameraContext.snapshot({
+          success: (res) => {
+            const path = res.tempImagePath || (res.message && res.message.tempImagePath)
+            if (path) {
+              this.dispatchLocalFrame(path)
+            } else {
+              this.sending = false
+              this.errorText = `${this.copy.frameCaptureFailed}: empty snapshot`
+            }
+          },
+          fail: (err) => {
+            this.sending = false
+            this.errorText = `${this.copy.frameCaptureFailed}: ${(err && (err.errMsg || err.message)) || 'unknown error'}`
+          }
+        })
+        return
+      }
+      // #endif
       this.sending = true
+      // #ifdef MP-WEIXIN
       this.cameraContext.takePhoto({
         quality: 'low',
         success: (res) => {
@@ -442,49 +580,103 @@ export default {
           this.errorText = `${this.copy.frameCaptureFailed}: ${err.errMsg || 'unknown error'}`
         }
       })
-    },
-    sendToBackend(imagePath) {
-      const fileSystemManager = uni.getFileSystemManager()
-      fileSystemManager.readFile({
-        filePath: imagePath,
-        encoding: 'base64',
+      // #endif
+      // #ifdef APP-PLUS
+      this.cameraContext.snapshot({
         success: (res) => {
-          uni.request({
-            url: REALTIME_API_URL,
-            method: 'POST',
-            timeout: REQUEST_TIMEOUT,
-            data: {
-              openid: getOpenid(),
-              session_id: this.sessionId,
-              image: `data:image/jpeg;base64,${res.data}`
-            },
-            success: (response) => {
-              const result = response.data || {}
-              if (response.statusCode !== 200 || result.error) {
-                this.errorText = `${this.copy.serverError}: ${result.error || response.statusCode}`
-                return
-              }
-              this.applyRealtimeResult(result)
-            },
-            fail: (err) => {
-              this.sending = false
-              if (err.errMsg && err.errMsg.includes('timeout')) {
-                this.errorText = this.copy.requestTimeout
-              } else {
-                this.errorText = `${this.copy.requestFailed}: ${err.errMsg || 'network error'}`
-              }
-            },
-            complete: () => {
-              this.sending = false
-              if (this.isDetecting) {
-                setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
-              }
-            }
-          })
+          const path = res.tempImagePath || (res.message && res.message.tempImagePath)
+          if (path) {
+            this.sendToBackend(path)
+          } else {
+            this.sending = false
+            this.errorText = `${this.copy.frameCaptureFailed}: empty snapshot`
+          }
         },
         fail: (err) => {
           this.sending = false
-          this.errorText = `${this.copy.imageReadFailed}: ${err.errMsg || 'unknown error'}`
+          this.errorText = `${this.copy.frameCaptureFailed}: ${(err && (err.errMsg || err.message)) || 'unknown error'}`
+        }
+      })
+      // #endif
+    },
+    sendToBackend(imagePath) {
+      this.readImageAsBase64(imagePath)
+        .then((base64) => {
+          this.postFrameToBackend(base64)
+        })
+        .catch((err) => {
+          this.sending = false
+          this.errorText = `${this.copy.imageReadFailed}: ${(err && (err.errMsg || err.message)) || err || 'unknown error'}`
+        })
+    },
+    readImageAsBase64(imagePath) {
+      // #ifdef MP-WEIXIN
+      return new Promise((resolve, reject) => {
+        uni.getFileSystemManager().readFile({
+          filePath: imagePath,
+          encoding: 'base64',
+          success: (res) => resolve(res.data),
+          fail: reject
+        })
+      })
+      // #endif
+      // #ifdef APP-PLUS
+      return new Promise((resolve, reject) => {
+        if (typeof uni.getFileSystemManager === 'function') {
+          uni.getFileSystemManager().readFile({
+            filePath: imagePath,
+            encoding: 'base64',
+            success: (res) => resolve(res.data),
+            fail: reject
+          })
+          return
+        }
+        // 低版本基座无 getFileSystemManager 时，用 5+ API 读取
+        plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+          entry.file((file) => {
+            const reader = new plus.io.FileReader()
+            reader.onload = (evt) => {
+              const result = String((evt.target && evt.target.result) || '')
+              resolve(result.split(',')[1] || '')
+            }
+            reader.onerror = (evt) => reject((evt && evt.target && evt.target.error) || new Error('read failed'))
+            reader.readAsDataURL(file)
+          }, reject)
+        }, reject)
+      })
+      // #endif
+    },
+    postFrameToBackend(base64) {
+      uni.request({
+        url: `${getApiBaseUrl()}/api/realtime_frame`,
+        method: 'POST',
+        timeout: REQUEST_TIMEOUT,
+        data: {
+          openid: getOpenid(),
+          session_id: this.sessionId,
+          image: `data:image/jpeg;base64,${base64}`
+        },
+        success: (response) => {
+          const result = response.data || {}
+          if (response.statusCode !== 200 || result.error) {
+            this.errorText = `${this.copy.serverError}: ${result.error || response.statusCode}`
+            return
+          }
+          this.applyRealtimeResult(result)
+        },
+        fail: (err) => {
+          this.sending = false
+          if (err.errMsg && err.errMsg.includes('timeout')) {
+            this.errorText = this.copy.requestTimeout
+          } else {
+            this.errorText = `${this.copy.requestFailed}: ${err.errMsg || 'network error'}`
+          }
+        },
+        complete: () => {
+          this.sending = false
+          if (this.isDetecting) {
+            setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
+          }
         }
       })
     },
@@ -500,6 +692,58 @@ export default {
       this.landmarks = result.landmarks || []
       this.errorText = ''
     },
+    // #ifdef APP-PLUS
+    dispatchLocalFrame(imagePath) {
+      this.readImageAsBase64(imagePath)
+        .then((base64) => {
+          this.frameSeq += 1
+          this.framePayload = { seq: this.frameSeq, base64 }
+        })
+        .catch((err) => {
+          this.sending = false
+          this.errorText = `${this.copy.imageReadFailed}: ${(err && (err.errMsg || err.message)) || err || 'unknown error'}`
+          if (this.isDetecting) {
+            setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
+          }
+        })
+    },
+    onDetectorStatus(payload) {
+      if (payload && payload.ready) {
+        this.detectorReady = true
+        this.detectorFailed = false
+        if (this.isDetecting && !this.sending) {
+          this.captureAndDetect()
+        }
+      } else {
+        this.detectorReady = false
+        this.detectorFailed = true
+        this.errorText = `${this.copy.modelLoadFailed}: ${(payload && payload.error) || 'unknown error'}`
+      }
+    },
+    // #endif
+    retryDetectorInit() {
+      // #ifdef APP-PLUS
+      this.detectorFailed = false
+      this.commandSeq += 1
+      this.commandPayload = { action: 'init', seq: this.commandSeq }
+      // #endif
+    },
+    switchCamera() {
+      if (!this.cameraReady) {
+        return
+      }
+      this.cameraReady = false
+      this.cameraPosition = this.cameraPosition === 'front' ? 'back' : 'front'
+    },
+    onDetectResult(result) {
+      this.sending = false
+      if (result && !result.error) {
+        this.applyRealtimeResult(result)
+      }
+      if (this.isDetecting) {
+        setTimeout(() => this.captureAndDetect(), this.requestIntervalMs)
+      }
+    },
     updateTrainingTime() {
       if (!this.startTime) {
         return
@@ -511,8 +755,22 @@ export default {
       this.trainingTime = `${minutes}:${seconds}`
     },
     handleReset() {
+      // #ifdef APP-PLUS
+      if (this.detectMode === 'local') {
+        this.commandSeq += 1
+        this.commandPayload = { action: 'reset', seq: this.commandSeq }
+        this.currentExerciseKey = 'unknown'
+        this.currentReps = 0
+        this.totalReps = 0
+        this.calories = 0
+        this.counts = {}
+        this.caloriesByExercise = {}
+        this.landmarks = []
+        return
+      }
+      // #endif
       uni.request({
-        url: `${SERVER_BASE_URL}/api/reset`,
+        url: `${getApiBaseUrl()}/api/reset`,
         method: 'POST',
         complete: () => {
           this.currentExerciseKey = 'unknown'
@@ -584,6 +842,248 @@ export default {
           }
         })
       })
+    }
+  }
+}
+</script>
+
+<script module="detector" lang="renderjs">
+// 端侧识别模块：运行在 App 视图层 WebView 中
+// 加载本地 AI 资产（MediaPipe Pose + ONNX 分类器）并逐帧推理，
+// 通过 $ownerInstance.callMethod 与逻辑层通信，响应结构与后端 /api/realtime_frame 同构。
+import { ExerciseEngine } from '../../common/exercise-engine.js'
+
+const CLASSIFY_INTERVAL_MS = 800
+
+function resolveBasePath() {
+  // file:// 下 location.origin 可能为 "null"，用 protocol + host 拼接更稳
+  const path = window.location.pathname || '/'
+  const dir = path.substring(0, path.lastIndexOf('/') + 1)
+  return window.location.protocol + '//' + window.location.host + dir
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = src
+    el.onload = () => resolve()
+    el.onerror = () => reject(new Error('script load failed: ' + src))
+    document.head.appendChild(el)
+  })
+}
+
+function base64ToBytes(b64) {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) {
+    bytes[i] = bin.charCodeAt(i)
+  }
+  return bytes
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('image decode failed'))
+    img.src = src
+  })
+}
+
+// file:// 环境下拦截 wasm 请求，改为返回内嵌 base64 资产，保证离线可用
+function patchFetchForEmbeddedAssets() {
+  const originalFetch = window.fetch
+  window.fetch = function patchedFetch(input, init) {
+    let url = ''
+    if (typeof input === 'string') {
+      url = input
+    } else if (input && input.url) {
+      url = input.url
+    }
+    const name = url.split('?')[0].split('/').pop()
+    const b64 = window.__AI_ASSETS && window.__AI_ASSETS[name]
+    if (b64) {
+      return Promise.resolve(new Response(base64ToBytes(b64), {
+        status: 200,
+        headers: { 'content-type': 'application/wasm' }
+      }))
+    }
+    return originalFetch.call(window, input, init)
+  }
+}
+
+export default {
+  mounted() {
+    this.pose = null
+    this.engine = null
+    this.ort = null
+    this.session = null
+    this.ready = false
+    this.initializing = false
+    this.classification = null
+    this.lastClassifyAt = 0
+    this.frameTimes = []
+    this.init()
+  },
+  methods: {
+    async init() {
+      // 仅 App（file:// 视图层 webview）启用端侧识别；H5 页面无相机组件，跳过
+      if (!/^file:/i.test(window.location.protocol)) {
+        return
+      }
+      // 防止 mounted 与重试命令并发重复初始化
+      if (this.initializing || this.ready) {
+        return
+      }
+      this.initializing = true
+      const report = (ownerInstance, payload) => {
+        ownerInstance && ownerInstance.callMethod('onDetectorStatus', payload)
+      }
+      let owner = this.$ownerInstance
+      try {
+        const base = resolveBasePath()
+        patchFetchForEmbeddedAssets()
+
+        await loadScript(base + 'static/ai/embedded/ort_wasm.js')
+        await loadScript(base + 'static/ai/embedded/vision_wasm.js')
+        await loadScript(base + 'static/ai/embedded/pose_model.js')
+        await loadScript(base + 'static/ai/embedded/onnx_model.js')
+        await loadScript(base + 'static/ai/embedded/scaler.js')
+        await loadScript(base + 'static/ai/vendor/ort/ort.min.js')
+        await loadScript(base + 'static/ai/vendor/vision/vision_bundle.iife.js')
+
+        const ort = window.ort
+        const vision = window.MediaPipeTasksVision
+        if (!ort || !vision || !window.__AI_SCALER || !window.__AI_ASSETS) {
+          throw new Error('AI runtime unavailable')
+        }
+
+        ort.env.wasm.numThreads = 1
+        ort.env.wasm.wasmPaths = base + 'static/ai/vendor/ort/'
+
+        const onnxBytes = base64ToBytes(window.__AI_ASSETS['exercise_classifier.onnx'])
+        const session = await ort.InferenceSession.create(onnxBytes)
+        const inputName = session.inputNames[0]
+        const outputName = session.outputNames[0]
+
+        const fileset = await vision.FilesetResolver.forVisionTasks(base + 'static/ai/vendor/vision/wasm')
+        const poseModelBytes = base64ToBytes(window.__AI_ASSETS['pose_landmarker_lite.task'])
+        let pose
+        try {
+          pose = await vision.PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: { modelAssetBuffer: poseModelBytes, delegate: 'GPU' },
+            runningMode: 'IMAGE',
+            numPoses: 1
+          })
+        } catch (gpuError) {
+          pose = await vision.PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: { modelAssetBuffer: poseModelBytes, delegate: 'CPU' },
+            runningMode: 'IMAGE',
+            numPoses: 1
+          })
+        }
+
+        const scaler = window.__AI_SCALER
+        const engine = new ExerciseEngine({
+          scaler: { mean: scaler.mean, scale: scaler.scale },
+          labels: scaler.labels,
+          sequenceLength: scaler.sequence_length || 30,
+          onnxRun: async (flatSequence) => {
+            const tensor = new ort.Tensor('float32', flatSequence, [1, scaler.sequence_length || 30, scaler.mean.length])
+            const feeds = {}
+            feeds[inputName] = tensor
+            const outputs = await session.run(feeds)
+            return outputs[outputName].data
+          }
+        })
+
+        this.ort = ort
+        this.session = session
+        this.pose = pose
+        this.engine = engine
+        this.ready = true
+        // 模型已全部解码驻留，释放 base64 源字符串（约 60MB 字符串内存），降低 WebView 内存峰值
+        window.__AI_ASSETS = null
+        window.__AI_SCALER = null
+        report(this.$ownerInstance || owner, { ready: true })
+      } catch (e) {
+        this.ready = false
+        report(this.$ownerInstance || owner, { ready: false, error: String((e && e.message) || e) })
+      } finally {
+        this.initializing = false
+      }
+    },
+    onCommand(payload) {
+      if (!payload || !this.engine) {
+        // 初始化失败后 engine 尚未创建，重试命令仍需放行
+        if (payload && payload.action === 'init') {
+          this.init()
+        }
+        return
+      }
+      if (payload.action === 'reset') {
+        this.engine.reset()
+        this.classification = null
+        this.lastClassifyAt = 0
+        this.frameTimes = []
+      }
+    },
+    async onFrame(payload) {
+      if (!payload || !payload.base64 || !this.ready || !this.pose || !this.engine) {
+        return
+      }
+      try {
+        const image = await loadImage('data:image/jpeg;base64,' + payload.base64)
+        const result = this.pose.detect(image)
+        const points = result && result.landmarks && result.landmarks[0]
+
+        let flat = null
+        if (points && points.length) {
+          flat = new Array(132)
+          for (let i = 0; i < 33; i++) {
+            const p = points[i] || {}
+            flat[i * 4] = p.x || 0
+            flat[i * 4 + 1] = p.y || 0
+            flat[i * 4 + 2] = p.z || 0
+            flat[i * 4 + 3] = p.visibility != null ? p.visibility : 1
+          }
+        }
+
+        let exercise = null
+        let confidence = 0
+        if (flat) {
+          const bufferFull = this.engine.feed(flat)
+          const now = Date.now()
+          if (bufferFull && now - this.lastClassifyAt >= CLASSIFY_INTERVAL_MS) {
+            this.lastClassifyAt = now
+            const cls = await this.engine.classify()
+            if (cls) {
+              this.classification = cls
+            }
+          }
+          if (this.classification) {
+            exercise = this.classification.exercise
+            confidence = this.classification.confidence
+            this.engine.updateCounts(exercise, confidence, flat)
+          }
+        }
+
+        const fps = this.trackFps()
+        const response = this.engine.buildDetectResponse(exercise, confidence, flat, fps)
+        this.$ownerInstance && this.$ownerInstance.callMethod('onDetectResult', response)
+      } catch (e) {
+        this.$ownerInstance && this.$ownerInstance.callMethod('onDetectResult', {
+          error: String((e && e.message) || e)
+        })
+      }
+    },
+    trackFps() {
+      const now = Date.now()
+      this.frameTimes.push(now)
+      while (this.frameTimes.length && now - this.frameTimes[0] > 1000) {
+        this.frameTimes.shift()
+      }
+      return this.frameTimes.length
     }
   }
 }
@@ -760,14 +1260,64 @@ export default {
 .placeholder {
   z-index: 2;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20rpx;
   background: rgba(2, 6, 23, 0.45);
 }
 
 .placeholder-title {
   font-size: 32rpx;
   color: #ffffff;
+}
+
+.placeholder-retry {
+  padding: 14rpx 36rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.35);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.camera-switch {
+  position: absolute;
+  left: 20rpx;
+  bottom: 20rpx;
+  z-index: 3;
+  padding: 10rpx 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 999rpx;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+
+.detector-host {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.offline-banner {
+  margin-top: 16rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 16rpx;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1rpx solid rgba(250, 204, 21, 0.32);
+}
+
+.offline-text {
+  font-size: 22rpx;
+  color: #facc15;
 }
 
 .preview-badge {
