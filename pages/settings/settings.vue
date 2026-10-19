@@ -36,6 +36,34 @@
         </button>
       </view>
     </view>
+
+    <!-- #ifdef APP-PLUS -->
+    <view class="setting-card">
+      <text class="card-title">{{ copy.detectModeTitle }}</text>
+      <view class="option-grid">
+        <button
+          v-for="item in detectModeOptions"
+          :key="item.value"
+          :class="['option-btn', { active: detectMode === item.value }]"
+          @click="handleDetectModeChange(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </view>
+      <text class="server-hint">{{ copy.detectModeHint }}</text>
+    </view>
+    <view class="setting-card">
+      <text class="card-title">{{ copy.serverTitle }}</text>
+      <input
+        class="server-input"
+        v-model="serverUrl"
+        :placeholder="defaultApiBaseUrl"
+        placeholder-class="server-placeholder"
+      />
+      <text class="server-hint">{{ copy.serverHint }}</text>
+      <button class="option-btn server-save" @click="handleServerSave">{{ copy.serverSave }}</button>
+    </view>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -53,12 +81,16 @@ import {
   getLocale,
   setLocale
 } from '../../common/i18n.js'
+import { DEFAULT_API_BASE_URL, getApiBaseUrl, getDetectMode, setApiBaseUrl, setDetectMode } from '../../common/api.js'
 
 export default {
   data() {
     return {
       themeMode: getThemeMode(),
-      locale: getLocale()
+      locale: getLocale(),
+      serverUrl: getApiBaseUrl(),
+      defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+      detectMode: getDetectMode()
     }
   },
   computed: {
@@ -81,6 +113,12 @@ export default {
       return [
         { label: this.copy.languageZh, value: 'zh' },
         { label: this.copy.languageEn, value: 'en' }
+      ]
+    },
+    detectModeOptions() {
+      return [
+        { label: this.copy.detectModeLocal, value: 'local' },
+        { label: this.copy.detectModeServer, value: 'server' }
       ]
     }
   },
@@ -108,6 +146,20 @@ export default {
     handleLanguageChange(locale) {
       this.locale = setLocale(locale)
       applyPageLocale('settings', this.locale)
+    },
+    handleServerSave() {
+      this.serverUrl = setApiBaseUrl(this.serverUrl)
+      uni.showToast({
+        title: this.copy.serverSaved,
+        icon: 'none'
+      })
+    },
+    handleDetectModeChange(mode) {
+      this.detectMode = setDetectMode(mode)
+      uni.showToast({
+        title: this.copy.detectModeSaved,
+        icon: 'none'
+      })
     }
   }
 }
@@ -228,5 +280,33 @@ export default {
 
 .option-btn::after {
   border: none;
+}
+
+.server-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 24rpx;
+  background: var(--surface-strong);
+  border: 1rpx solid var(--border);
+  color: var(--text);
+  font-size: 28rpx;
+}
+
+.server-placeholder {
+  color: var(--text-muted);
+}
+
+.server-hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.server-save {
+  margin-top: 18rpx;
+  width: 100%;
 }
 </style>

@@ -1,7 +1,7 @@
 {
-    "name" : "ProfitAI",
+    "name" : "AuraPose",
     "appid" : "__UNI__0E403A6",
-    "description" : "",
+    "description" : "AI 姿态识别健身训练应用：端侧实时动作识别、计数与卡路里统计",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -16,32 +16,63 @@
             "autoclose" : true,
             "delay" : 0
         },
-        /* 模块配置 */
-        "modules" : {},
+        /* 模块配置（VideoPlayer 为 live-pusher 相机预览/截图所必需） */
+        "modules" : {
+            "VideoPlayer" : {}
+        },
         /* 应用发布信息 */
         "distribute" : {
-            /* android打包配置 */
+            /* android打包配置：仅保留实际使用的权限（相机/网络），移除默认模板的敏感权限 */
             "android" : {
                 "permissions" : [
-                    "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
-                    "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
-                    "<uses-permission android:name=\"android.permission.READ_LOGS\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
-                    "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.CAMERA\"/>",
-                    "<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>",
-                    "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
                     "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
-                    "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
+                    "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>"
                 ]
             },
-            /* ios打包配置 */
-            "ios" : {},
+            /* ios打包配置：相机隐私用途描述（上架必需） */
+            "ios" : {
+                "privacyDescription" : {
+                    "NSCameraUsageDescription" : "用于实时动作识别与训练指导，仅在训练页面使用相机画面。"
+                }
+            },
+            /* 应用图标（HBuilderX 标准规格，master 1024x1024 已生成全套尺寸） */
+            "icons" : {
+                "android" : {
+                    "hdpi" : "static/icons/72x72.png",
+                    "xhdpi" : "static/icons/96x96.png",
+                    "xxhdpi" : "static/icons/144x144.png",
+                    "xxxhdpi" : "static/icons/192x192.png"
+                },
+                "ios" : {
+                    "appstore" : "static/icons/1024x1024.png",
+                    "ipad" : {
+                        "app" : "static/icons/76x76.png",
+                        "app@2x" : "static/icons/152x152.png",
+                        "notification" : "static/icons/20x20.png",
+                        "notification@2x" : "static/icons/40x40.png",
+                        "proapp@2x" : "static/icons/167x167.png",
+                        "settings" : "static/icons/29x29.png",
+                        "settings@2x" : "static/icons/58x58.png",
+                        "spotlight" : "static/icons/40x40.png",
+                        "spotlight@2x" : "static/icons/80x80.png"
+                    },
+                    "iphone" : {
+                        "app@2x" : "static/icons/120x120.png",
+                        "app@3x" : "static/icons/180x180.png",
+                        "notification@2x" : "static/icons/40x40.png",
+                        "notification@3x" : "static/icons/60x60.png",
+                        "settings@2x" : "static/icons/58x58.png",
+                        "settings@3x" : "static/icons/87x87.png",
+                        "spotlight@2x" : "static/icons/80x80.png",
+                        "spotlight@3x" : "static/icons/120x120.png"
+                    }
+                }
+            },
             /* SDK配置 */
             "sdkConfigs" : {}
         }
